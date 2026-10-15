@@ -26,6 +26,12 @@ const lastSuccessGauge = new Gauge({
   registers: [registry],
 });
 
+const apiCallsGauge = new Gauge({
+  name: 'cleanair_job_api_calls',
+  help: 'Number of API calls made by the last job run',
+  registers: [registry],
+});
+
 const printJson = (data) => console.log(JSON.stringify(data, null, 2));
 
 async function main() {
@@ -46,7 +52,7 @@ async function main() {
     printJson({ error: err.message });
   }
 
-  if (client) console.error(`Number of Api calls: ${client.callCount}`);
+  apiCallsGauge.set(client ? client.callCount : 0);
 
   const durationSeconds = Number(process.hrtime.bigint() - start) / 1e9;
   durationGauge.set(durationSeconds);

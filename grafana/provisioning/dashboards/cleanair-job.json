@@ -2,79 +2,291 @@
   "uid": "cleanair-job",
   "title": "CleanAir Job",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "refresh": "5s",
-  "time": { "from": "now-30m", "to": "now" },
-  "tags": ["cleanair"],
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "tags": [
+    "cleanair"
+  ],
   "panels": [
     {
       "id": 1,
       "type": "stat",
       "title": "Last duration",
-      "gridPos": { "x": 0, "y": 0, "w": 8, "h": 5 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
-        { "refId": "A", "expr": "cleanair_job_duration_seconds{job=\"cleanair_job\"}", "instant": true }
+        {
+          "refId": "A",
+          "expr": "cleanair_job_duration_seconds{job=\"cleanair_job\"}",
+          "instant": true
+        }
       ],
       "fieldConfig": {
-        "defaults": { "unit": "s", "decimals": 3 },
+        "defaults": {
+          "unit": "s",
+          "decimals": 3
+        },
         "overrides": []
       },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none" }
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none"
+      }
     },
     {
       "id": 2,
       "type": "stat",
       "title": "Last run",
-      "gridPos": { "x": 8, "y": 0, "w": 8, "h": 5 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
-        { "refId": "A", "expr": "cleanair_job_last_run_timestamp_seconds{job=\"cleanair_job\"} * 1000", "instant": true }
+        {
+          "refId": "A",
+          "expr": "cleanair_job_last_run_timestamp_seconds{job=\"cleanair_job\"} * 1000",
+          "instant": true
+        }
       ],
       "fieldConfig": {
-        "defaults": { "unit": "dateTimeAsIso" },
+        "defaults": {
+          "unit": "dateTimeAsIso"
+        },
         "overrides": []
       },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "none", "graphMode": "none" }
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none"
+      }
     },
     {
       "id": 3,
       "type": "stat",
       "title": "Last status",
-      "gridPos": { "x": 16, "y": 0, "w": 8, "h": 5 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
-        { "refId": "A", "expr": "cleanair_job_last_success{job=\"cleanair_job\"}", "instant": true }
+        {
+          "refId": "A",
+          "expr": "cleanair_job_last_success{job=\"cleanair_job\"}",
+          "instant": true
+        }
       ],
       "fieldConfig": {
         "defaults": {
           "mappings": [
-            { "type": "value", "options": { "0": { "text": "FAILED", "color": "red" }, "1": { "text": "OK", "color": "green" } } }
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "FAILED",
+                  "color": "red"
+                },
+                "1": {
+                  "text": "OK",
+                  "color": "green"
+                }
+              }
+            }
           ],
-          "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 1 } ] }
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
         },
         "overrides": []
       },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "background", "graphMode": "none" }
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none"
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "API calls (last run)",
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "cleanair_job_api_calls{job=\"cleanair_job\"}",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none"
+      }
     },
     {
       "id": 4,
       "type": "timeseries",
       "title": "Job execution time",
-      "gridPos": { "x": 0, "y": 5, "w": 24, "h": 12 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 24,
+        "h": 12
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
-        { "refId": "A", "expr": "cleanair_job_duration_seconds{job=\"cleanair_job\"}", "legendFormat": "duration" }
+        {
+          "refId": "A",
+          "expr": "cleanair_job_duration_seconds{job=\"cleanair_job\"}",
+          "legendFormat": "duration"
+        }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "s",
           "min": 0,
-          "custom": { "drawStyle": "line", "lineInterpolation": "stepAfter", "lineWidth": 2, "fillOpacity": 10, "showPoints": "never" }
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "stepAfter",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
         },
         "overrides": []
       },
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } }
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "API calls per run",
+      "gridPos": {
+        "x": 0,
+        "y": 17,
+        "w": 24,
+        "h": 10
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "cleanair_job_api_calls{job=\"cleanair_job\"}",
+          "legendFormat": "api calls"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "stepAfter",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      }
     }
   ]
 }

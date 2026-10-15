@@ -29,7 +29,7 @@
   - `ranking`: cities sorted by `pm25_avg` ascending, with no-data cities excluded
   - `no_data`: the city names that had no data
   - `source`
-- API call count: logged as `Number of Api calls: N`.
+- API call count: recorded in the Prometheus gauge `cleanair_job_api_calls` (PHP prints `Number of Api calls: N` instead).
 
 ## Git branch
 The work is on branch **`01-fetch-data-from-openaq`**, which was created from the initial commit on `main` (`2364956`). The docs for this branch are in `claude/01-fetch-data-from-openaq/`.
@@ -74,10 +74,15 @@ Data only: `API_BASE`, `RADIUS_M`, `PM25_PARAM_ID`, `WHO_PM25_24H` and `CITIES` 
 
 ### `fetcher/src/job.js` (modify)
 - Remove `dummyTask`. In `main()`, throw `OPENAQ_API_KEY is not set` if the key is empty, then build `new Pm25Ingestion(new ApiClient({ baseUrl: API_BASE, headers: { 'X-API-Key': key } }))` and `await ingestion.run(process.argv[2])` inside the existing timing and try/catch block.
-- Log `Number of Api calls: ${client.callCount}` to stderr.
+- Sets the gauge `cleanair_job_api_calls` to `client.callCount` on every run, or to 0 if the client was never created (missing key or unknown city). The count is no longer logged.
 - On success, print the report as pretty JSON (2-space indent) to **stdout**. On error, print `{"error": msg}` to stdout, matching PHP's `fail()`. The exit code is 2 for an unknown city and 1 otherwise.
-- Status lines go to **stderr** (`console.error`), so stdout stays valid JSON that can be piped to `jq`. That covers the API call count, the duration line and the "Metrics pushed" line.
+- Status lines go to **stderr** (`console.error`), so stdout stays valid JSON that can be piped to `jq`. That covers the duration line.
 - Metrics are pushed after every run, whether it succeeded or failed (as now). The job name `cleanair_job` and the Grafana dashboard stay unchanged.
+
+### `grafana/provisioning/dashboards/cleanair-job.json` (modify)
+- Adds a stat panel, **"API calls (last run)"**. The top row is now 4 stat panels, each `w: 6`.
+- Adds a time series panel, **"API calls per run"**, below the duration graph.
+- Both panels use the query `cleanair_job_api_calls{job="cleanair_job"}`.
 
 ### API key
 - `docker-compose.yml`, `fetcher` service: add `OPENAQ_API_KEY: ${OPENAQ_API_KEY}` to `environment`.
@@ -94,7 +99,7 @@ Data only: `API_BASE`, `RADIUS_M`, `PM25_PARAM_ID`, `WHO_PM25_24H` and `CITIES` 
 ## Verification
 Each full run uses about 1 + 3×(sensors) calls per city. To protect the free quota, test with a single city first.
 1. `docker compose up -d fetcher` (this picks up the new environment variable).
-2. `docker compose exec -T fetcher node src/job.js sofia | jq .` should return valid JSON with `ranking[0].city == "sofia"`. stderr should show the API call count.
+2. `docker compose exec -T fetcher node src/job.js sofia | jq .` should return valid JSON with `ranking[0].city == "sofia"`. The Pushgateway should show `cleanair_job_api_calls 3`.
 3. Compare with PHP: run `php openaqtest.php sofia` (or the `php:8.3-cli` container) and check that the city averages and station list match. The PHP script also prints a call-count line before its JSON.
 4. `docker compose exec -T fetcher node src/job.js nowhere` should print `{"error":"unknown city 'nowhere'"}` with exit code 2, and Pushgateway should show `cleanair_job_last_success 0`.
 5. Run once with all cities. The ranking should be sorted ascending, `no_data` should list the cities without data, and the Grafana duration panel should show the real run time.

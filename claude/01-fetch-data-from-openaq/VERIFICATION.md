@@ -102,6 +102,22 @@ Report summary:
 - `no_data`: plovdiv, burgas, stara-zagora, pleven, vidin, shumen, pernik.
 - Pushgateway: `cleanair_job_duration_seconds 5.849829137`, `cleanair_job_last_success 1`.
 
+## 7. API call count as a Prometheus gauge
+The `Number of Api calls` log line was replaced with the gauge `cleanair_job_api_calls`, which is shown on two new dashboard panels.
+
+```bash
+docker compose restart fetcher grafana
+docker compose exec -T fetcher node src/job.js sofia
+curl -s localhost:9091/metrics | grep '^cleanair_job_api_calls'
+docker compose exec -T fetcher node src/job.js nowhere
+curl -s localhost:9091/metrics | grep '^cleanair_job_api_calls'
+```
+- `sofia`: stderr shows only `Job finished in 1.783s (success=true)`, with no call-count line. The Pushgateway shows `cleanair_job_api_calls 3`.
+- `nowhere`: exit code 2, and the Pushgateway shows `cleanair_job_api_calls 0`.
+- Prometheus: the `cleanair_job_api_calls` query returns `"3"` after another Sofia run.
+- Grafana: the logs show `finished to provision dashboards` with no dashboard errors. The provisioned file inside the container contains the new query. The dashboard has the panels Last duration, Last run, Last status, **API calls (last run)**, Job execution time, and **API calls per run**.
+- I could not check the Grafana API with `admin/admin`, because the admin password has since been changed.
+
 ## Notes
 - **API quota:** a full run made 17 API calls, of which a single city took 3. Fetches run one after another, with at most 3 locations per city (`maxLocationsPerCity`).
 - **Secrets:** the key is only in `.env`, which git ignores. `.env.example` is the committed template.
