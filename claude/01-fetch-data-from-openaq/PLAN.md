@@ -21,11 +21,14 @@
   - **Keeps only the first 3 locations** (the free-quota limit from the PHP file).
   - For each pm25 sensor it records `{location_id, name, sensor_id, pm25_avg (1 decimal), hours}`.
   - The city average is the mean of the stations that have data. It also reports `recommended_ratio` (2 decimals), `within_recommended` and `stations_used`.
-- Time window: the current UTC time truncated to the hour, minus 24h, formatted as `YYYY-MM-DDTHH:mm:ssZ`.
-- Optional CLI argument for a single city (case-insensitive). An unknown city produces `{"error": "unknown city 'x'"}` and exit code 2.
+- Time window: the reference time (the optional `--date-to`, or now) truncated to the UTC hour, minus 24h, formatted as `YYYY-MM-DDTHH:mm:ssZ`. For example, `--date-to 2026-10-14` covers `2026-10-13T00:00:00Z` → `2026-10-14T00:00:00Z`.
+- CLI: `node src/job.js [--city <name>] [--date-to <date>]`. Both are named options parsed with Node's `util.parseArgs`; positional arguments are not accepted.
+  - `--city` is optional and case-insensitive; without it, all cities are fetched. An unknown city produces `{"error": "unknown city 'x'"}` and exit code 2.
+  - `--date-to` is optional and takes any date `new Date()` can parse (`2026-10-14`, `2026-10-14T06:30:00Z`). An unparsable or future date produces `{"error": "invalid date-to '…'"}` and exit code 2.
+  - Unknown options, an option without a value, or any positional argument (e.g. `node src/job.js sofia`) also exit with code 2.
 - Report fields:
   - `pollutant`, `unit`, `period{from,to}`, `recommended_guideline`
-  - `ranking`: cities sorted by `pm25_avg` ascending, with no-data cities excluded. Each entry is `{ city, pm25_avg, recommended_ratio, within_recommended, stations_used }`; the per-station detail is not included in the output.
+  - `cities`: the cities with data, in config order (not sorted), with no-data cities excluded. Each entry is `{ city, pm25_avg, recommended_ratio, within_recommended, stations_used }`; the per-station detail is not included in the output.
   - `no_data`: the city names that had no data
   - `source`
 - API call count: recorded in the Prometheus gauge `cleanair_job_api_calls` (PHP prints `Number of Api calls: N` instead).
@@ -65,14 +68,15 @@ Data only: `API_BASE`, `RADIUS_M`, `PM25_PARAM_ID`, `RECOMMENDED_PM25_24H` and `
     - Calls `/locations` and keeps the first `maxLocationsPerCity` locations.
     - Builds the per-sensor pm25 stations internally to calculate the city average and `stations_used`, then returns `{ city, pm25_avg, recommended_ratio, within_recommended, stations_used }` (without `stations`).
   - `static timeWindow(now = new Date())`: the UTC time truncated to the hour, minus 24h, as `{ from, to }` strings in `YYYY-MM-DDTHH:mm:ssZ` format.
-  - `async run(cityArg)`:
+  - `async run(cityArg, dateTo)`:
     - Checks the city. An unknown city throws `UnknownCityError` (exit code 2).
+    - `dateTo` is optional (a `Date` or a parsable string; defaults to now). If it's invalid or in the future, it throws `InvalidDateToError` (exit code 2). It is passed to `timeWindow()` as the reference time, and the `from = to - 24h` calculation is unchanged.
     - Fetches the cities one after another (as PHP does, to stay gentle on the quota).
     - Returns the report object, with the same fields as the PHP output.
   - Rounding uses a small `round(n, d)` helper that matches PHP's `round` behaviour.
 
 ### `fetcher/src/job.js` (modify)
-- Remove `dummyTask`. In `main()`, throw `OPENAQ_API_KEY is not set` if the key is empty, then build `new Pm25Ingestion(new ApiClient({ baseUrl: API_BASE, headers: { 'X-API-Key': key } }))` and `await ingestion.run(process.argv[2])` inside the existing timing and try/catch block.
+- Remove `dummyTask`. In `main()`, throw `OPENAQ_API_KEY is not set` if the key is empty, then build `new Pm25Ingestion(new ApiClient({ baseUrl: API_BASE, headers: { 'X-API-Key': key } }))` and `await ingestion.run(values.city, values['date-to'])` inside the existing timing and try/catch block.
 - Sets the gauge `cleanair_job_api_calls` to `client.callCount` on every run, or to 0 if the client was never created (missing key or unknown city). The count is no longer logged.
 - On success, print the report as pretty JSON (2-space indent) to **stdout**. On error, print `{"error": msg}` to stdout, matching PHP's `fail()`. The exit code is 2 for an unknown city and 1 otherwise.
 - Status lines go to **stderr** (`console.error`), so stdout stays valid JSON that can be piped to `jq`. That covers the duration line.
@@ -98,8 +102,8 @@ Data only: `API_BASE`, `RADIUS_M`, `PM25_PARAM_ID`, `RECOMMENDED_PM25_24H` and `
 ## Verification
 Each full run uses about 1 + 3×(sensors) calls per city. To protect the free quota, test with a single city first.
 1. `docker compose up -d fetcher` (this picks up the new environment variable).
-2. `docker compose exec -T fetcher node src/job.js sofia | jq .` should return valid JSON with `ranking[0].city == "sofia"`. The Pushgateway should show `cleanair_job_api_calls 3`.
+2. `docker compose exec -T fetcher node src/job.js --city sofia | jq .` should return valid JSON with `cities[0].city == "sofia"`. The Pushgateway should show `cleanair_job_api_calls 3`.
 3. Compare with PHP: run `php openaqtest.php sofia` (or the `php:8.3-cli` container) and check that the city averages and station list match. The PHP script also prints a call-count line before its JSON.
-4. `docker compose exec -T fetcher node src/job.js nowhere` should print `{"error":"unknown city 'nowhere'"}` with exit code 2, and Pushgateway should show `cleanair_job_last_success 0`.
-5. Run once with all cities. The ranking should be sorted ascending, `no_data` should list the cities without data, and the Grafana duration panel should show the real run time.
+4. `docker compose exec -T fetcher node src/job.js --city nowhere` should print `{"error":"unknown city 'nowhere'"}` with exit code 2, and Pushgateway should show `cleanair_job_last_success 0`.
+5. Run once with all cities. `cities` should list the cities with data, `no_data` should list the cities without data, and the Grafana duration panel should show the real run time.
 6. A missing key (temporarily `OPENAQ_API_KEY= docker compose exec -e OPENAQ_API_KEY= ...`) should produce a clear error and exit code 1.

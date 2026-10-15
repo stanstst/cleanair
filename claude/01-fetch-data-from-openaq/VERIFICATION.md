@@ -169,6 +169,52 @@ docker compose exec -T fetcher node src/job.js sofia
 - The exit code is 0, and the Pushgateway shows `cleanair_job_last_success 1`.
 - The only remaining "WHO" in `fetcher/src` is in the user's comment on `Pm25Ingestion.js:26`.
 
+## 10. Optional `--date-to` (a past day)
+`Pm25Ingestion.run(cityArg, dateTo)` and `node src/job.js [city] [--date-to <date>]`. `timeWindow()` is unchanged, including `from = to - 24h`, as `git diff` confirms.
+
+Error cases (no API calls):
+
+| Command | Output | Exit |
+|---|---|---|
+| `--date-to nonsense` | `invalid date-to 'nonsense'` | 2 |
+| `sofia --date-to 2030-01-01` | `invalid date-to '2030-01-01' is in the future` | 2 |
+| `--bogus` | `Unknown option '--bogus'. …` | 2 |
+| `sofia varna` | `unexpected arguments: varna` | 2 |
+
+Live runs for Sofia:
+
+| Command | Period | pm25_avg | Stations used |
+|---|---|---|---|
+| `sofia` | `2026-10-14T15:00:00Z` → `2026-10-15T15:00:00Z` | 5.4 | 1 |
+| `sofia --date-to 2026-10-14` | `2026-10-13T00:00:00Z` → `2026-10-14T00:00:00Z` | 11.1 | 2 |
+| `sofia --date-to 2026-10-14T06:30:00Z` | `2026-10-13T06:00:00Z` → `2026-10-14T06:00:00Z` | 10.1 | 2 |
+
+- With no date, the window still ends at the current UTC hour. A date-only value covers the full previous UTC day, and a time is truncated to the hour.
+- The Pushgateway shows `cleanair_job_api_calls 3` and `cleanair_job_last_success 1` after the last run.
+- I did not compare this with PHP, because `openaqtest.php` has no date parameter.
+
+## 11. City as a named option: `--city`
+The CLI is now `node src/job.js [--city <name>] [--date-to <date>]`. `parseArgs` no longer accepts positional arguments, so the `positionals` handling and the `UsageError` class were removed from `job.js`.
+
+Usage errors (no API calls):
+
+| Command | Output | Exit |
+|---|---|---|
+| `sofia` | `Unexpected argument 'sofia'. This command does not take positional arguments` | 2 |
+| `--city nowhere` | `unknown city 'nowhere'` | 2 |
+| `--city` | `Option '--city <value>' argument missing` | 2 |
+| `--bogus` | `Unknown option '--bogus'` | 2 |
+
+Live runs:
+
+| Command | Period | pm25_avg | Exit |
+|---|---|---|---|
+| `--city sofia` | `2026-10-14T15:00:00Z` → `2026-10-15T15:00:00Z` | 5.4 | 0 |
+| `--city sofia --date-to 2026-10-14` | `2026-10-13T00:00:00Z` → `2026-10-14T00:00:00Z` | 11.1 | 0 |
+| `--city SOFIA` | `2026-10-14T15:00:00Z` → `2026-10-15T15:00:00Z` | 5.4 | 0 |
+
+The results match section 10, which used the old positional form.
+
 ## Notes
 - **API quota:** a full run made 17 API calls, of which a single city took 3. Fetches run one after another, with at most 3 locations per city (`maxLocationsPerCity`).
 - **Secrets:** the key is only in `.env`, which git ignores. `.env.example` is the committed template.

@@ -7,6 +7,13 @@ class UnknownCityError extends Error {
   }
 }
 
+class InvalidDateToError extends Error {
+  constructor(value, reason = '') {
+    super(`invalid date-to '${value}'${reason}`);
+    this.name = 'InvalidDateToError';
+  }
+}
+
 function round(n, decimals) {
   const f = 10 ** decimals;
   return (Math.sign(n) * Math.round(Math.abs(n) * f + Number.EPSILON)) / f;
@@ -100,12 +107,17 @@ class Pm25Ingestion {
     };
   }
 
-  async run(cityArg) {
+  async run(cityArg, dateTo) {
     const arg = cityArg ? cityArg.toLowerCase() : null;
     if (arg !== null && !Object.hasOwn(this.cities, arg)) throw new UnknownCityError(arg);
 
+    const now = new Date();
+    const reference = dateTo === undefined || dateTo === null ? now : new Date(dateTo);
+    if (Number.isNaN(reference.getTime())) throw new InvalidDateToError(dateTo);
+    if (reference > now) throw new InvalidDateToError(dateTo, ' is in the future');
+
     const cities = arg ? { [arg]: this.cities[arg] } : this.cities;
-    const { from, to } = Pm25Ingestion.timeWindow();
+    const { from, to } = Pm25Ingestion.timeWindow(reference);
 
     const results = [];
     for (const [name, [lat, lon]] of Object.entries(cities)) {
@@ -127,4 +139,4 @@ class Pm25Ingestion {
   }
 }
 
-module.exports = { Pm25Ingestion, UnknownCityError };
+module.exports = { Pm25Ingestion, UnknownCityError, InvalidDateToError };

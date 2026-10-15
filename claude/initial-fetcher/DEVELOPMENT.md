@@ -5,7 +5,7 @@ The `fetcher` container mounts `./fetcher/src` at `/fetcher/src` (read-only). Ea
 | Change | How to apply |
 |---|---|
 | Edit `fetcher/src/job.js` (or anything in `fetcher/src/`) | Save the file, then run `docker compose exec fetcher node src/job.js`. The change takes effect immediately, with no rebuild or restart (but see the Docker Desktop caveat below). |
-| Change the OpenAQ API key (`.env` at the project root, which git ignores; copy it from `.env.example`) | `docker compose up -d fetcher` (a restart alone doesn't reload the environment). To run for one city: `docker compose exec fetcher node src/job.js sofia` |
+| Change the OpenAQ API key (`.env` at the project root, which git ignores; copy it from `.env.example`) | `docker compose up -d fetcher` (a restart alone doesn't reload the environment). To run for one city: `docker compose exec fetcher node src/job.js --city sofia`. For a past day: `docker compose exec fetcher node src/job.js --city sofia --date-to 2026-10-14` |
 | Add or change dependencies (`fetcher/package.json`) | `docker compose up -d --build fetcher` |
 | Change `fetcher/Dockerfile` | `docker compose up -d --build fetcher` |
 | Change `docker-compose.yml` | `docker compose up -d` (recreates only the services that changed) |

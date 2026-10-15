@@ -1,7 +1,8 @@
+const { parseArgs } = require('node:util');
 const { Registry, Gauge, Pushgateway } = require('prom-client');
 const { ApiClient } = require('./openaq/ApiClient');
 const { API_BASE } = require('./openaq/config');
-const { Pm25Ingestion, UnknownCityError } = require('./openaq/Pm25Ingestion');
+const { Pm25Ingestion, UnknownCityError, InvalidDateToError } = require('./openaq/Pm25Ingestion');
 
 const PUSHGATEWAY_URL = process.env.PUSHGATEWAY_URL || 'http://pushgateway:9091';
 const JOB_NAME = 'cleanair_job';
@@ -34,21 +35,30 @@ const apiCallsGauge = new Gauge({
 
 const printJson = (data) => console.log(JSON.stringify(data, null, 2));
 
+const isUsageError = (err) =>
+  err instanceof UnknownCityError ||
+  err instanceof InvalidDateToError ||
+  String(err.code).startsWith('ERR_PARSE_ARGS_');
+
 async function main() {
   const start = process.hrtime.bigint();
   let success = true;
   let client;
 
   try {
+    const { values } = parseArgs({
+      options: { city: { type: 'string' }, 'date-to': { type: 'string' } },
+    });
+
     const apiKey = process.env.OPENAQ_API_KEY;
     if (!apiKey) throw new Error('OPENAQ_API_KEY is not set');
 
     client = new ApiClient({ baseUrl: API_BASE, headers: { 'X-API-Key': apiKey } });
-    const report = await new Pm25Ingestion(client).run(process.argv[2]);
+    const report = await new Pm25Ingestion(client).run(values.city, values['date-to']);
     printJson(report);
   } catch (err) {
     success = false;
-    process.exitCode = err instanceof UnknownCityError ? 2 : 1;
+    process.exitCode = isUsageError(err) ? 2 : 1;
     printJson({ error: err.message });
   }
 
