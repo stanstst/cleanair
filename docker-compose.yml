@@ -1,0 +1,49 @@
+services:
+  fetcher:
+    build: ./fetcher
+    # Keep the container alive so the job can be run on demand:
+    #   docker compose exec fetcher node src/job.js
+    command: ["sleep", "infinity"]
+    environment:
+      PUSHGATEWAY_URL: http://pushgateway:9091
+    # Mount the source so edits to src/ apply on the next run without a rebuild.
+    volumes:
+      - ./fetcher/src:/fetcher/src:ro
+    depends_on:
+      - pushgateway
+    restart: unless-stopped
+
+  pushgateway:
+    image: prom/pushgateway:v1.11.1
+    ports:
+      - "9091:9091"
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    depends_on:
+      - pushgateway
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:12.1.0
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  prometheus-data:
+  grafana-data:

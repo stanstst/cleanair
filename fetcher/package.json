@@ -1,0 +1,13 @@
+{
+  "name": "cleanair-job",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dummy batch job that reports its execution time to Prometheus via Pushgateway",
+  "main": "src/job.js",
+  "scripts": {
+    "start": "node src/job.js"
+  },
+  "dependencies": {
+    "prom-client": "^15.1.3"
+  }
+}
