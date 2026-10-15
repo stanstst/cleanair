@@ -1,4 +1,7 @@
 const { Registry, Gauge, Pushgateway } = require('prom-client');
+const { ApiClient } = require('./openaq/ApiClient');
+const { API_BASE } = require('./openaq/config');
+const { Pm25Ingestion, UnknownCityError } = require('./openaq/Pm25Ingestion');
 
 const PUSHGATEWAY_URL = process.env.PUSHGATEWAY_URL || 'http://pushgateway:9091';
 const JOB_NAME = 'cleanair_job';
@@ -23,39 +26,40 @@ const lastSuccessGauge = new Gauge({
   registers: [registry],
 });
 
-// Placeholder for the real work: sleeps for 1, 2 or 3 seconds.
-async function dummyTask() {
-  const seconds = Math.floor(Math.random() * 3) + 1;
-  console.log(`Dummy task sleeping for ${seconds}s`);
-  await new Promise((resolve) => setTimeout(resolve, seconds * 1000));
-}
+const printJson = (data) => console.log(JSON.stringify(data, null, 2));
 
 async function main() {
   const start = process.hrtime.bigint();
   let success = true;
+  let client;
 
   try {
-    await dummyTask();
+    const apiKey = process.env.OPENAQ_API_KEY;
+    if (!apiKey) throw new Error('OPENAQ_API_KEY is not set');
+
+    client = new ApiClient({ baseUrl: API_BASE, headers: { 'X-API-Key': apiKey } });
+    const report = await new Pm25Ingestion(client).run(process.argv[2]);
+    printJson(report);
   } catch (err) {
     success = false;
-    console.error('Job failed:', err);
+    process.exitCode = err instanceof UnknownCityError ? 2 : 1;
+    printJson({ error: err.message });
   }
+
+  if (client) console.error(`Number of Api calls: ${client.callCount}`);
 
   const durationSeconds = Number(process.hrtime.bigint() - start) / 1e9;
   durationGauge.set(durationSeconds);
   lastRunGauge.set(Date.now() / 1000);
   lastSuccessGauge.set(success ? 1 : 0);
 
-  console.log(`Job finished in ${durationSeconds.toFixed(3)}s (success=${success})`);
+  console.error(`Job finished in ${durationSeconds.toFixed(3)}s (success=${success})`);
 
   const gateway = new Pushgateway(PUSHGATEWAY_URL, {}, registry);
   await gateway.pushAdd({ jobName: JOB_NAME });
-  console.log(`Metrics pushed to ${PUSHGATEWAY_URL}`);
-
-  if (!success) process.exitCode = 1;
 }
 
 main().catch((err) => {
-  console.error('Failed to push metrics:', err);
+  console.error('Fetcher failed to execute:', err);
   process.exit(1);
 });
