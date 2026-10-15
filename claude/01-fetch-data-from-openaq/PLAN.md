@@ -8,7 +8,7 @@
   - `API_BASE = https://api.openaq.org/v3`
   - `RADIUS_M = 15000`
   - `PM25_PARAM_ID = 2`
-  - `WHO_PM25_24H = 15`
+  - `RECOMMENDED_PM25_24H = 15`: the WHO 24h PM2.5 guideline. The code and the output call it "recommended" so the names are easier to understand.
   - the same 10 `CITIES` with their coordinates
 - `apiGet(path, query)`:
   - Sends the `X-API-Key` and `Accept: application/json` headers, with a 30-second timeout.
@@ -20,13 +20,12 @@
   - Calls `/locations` with `coordinates`, `radius`, `monitor=true`, `parameters_id` and `limit=100`.
   - **Keeps only the first 3 locations** (the free-quota limit from the PHP file).
   - For each pm25 sensor it records `{location_id, name, sensor_id, pm25_avg (1 decimal), hours}`.
-  - The city average is the mean of the stations that have data. It also reports `who_ratio` (2 decimals), `within_who` and `stations_used`.
+  - The city average is the mean of the stations that have data. It also reports `recommended_ratio` (2 decimals), `within_recommended` and `stations_used`.
 - Time window: the current UTC time truncated to the hour, minus 24h, formatted as `YYYY-MM-DDTHH:mm:ssZ`.
 - Optional CLI argument for a single city (case-insensitive). An unknown city produces `{"error": "unknown city 'x'"}` and exit code 2.
 - Report fields:
-  - `pollutant`, `unit`, `period{from,to}`, `who_guideline`
-  - `cleanest`
-  - `ranking`: cities sorted by `pm25_avg` ascending, with no-data cities excluded
+  - `pollutant`, `unit`, `period{from,to}`, `recommended_guideline`
+  - `ranking`: cities sorted by `pm25_avg` ascending, with no-data cities excluded. Each entry is `{ city, pm25_avg, recommended_ratio, within_recommended, stations_used }`; the per-station detail is not included in the output.
   - `no_data`: the city names that had no data
   - `source`
 - API call count: recorded in the Prometheus gauge `cleanair_job_api_calls` (PHP prints `Number of Api calls: N` instead).
@@ -42,7 +41,7 @@ The work is on branch **`01-fetch-data-from-openaq`**, which was created from th
 All new code goes in `fetcher/src/openaq/`, using CommonJS like `job.js`. It uses Node 22's built-in `fetch`, so no new dependencies are needed.
 
 ### `fetcher/src/openaq/config.js` (new)
-Data only: `API_BASE`, `RADIUS_M`, `PM25_PARAM_ID`, `WHO_PM25_24H` and `CITIES` (the 10 cities with coordinates, exactly as in the PHP file).
+Data only: `API_BASE`, `RADIUS_M`, `PM25_PARAM_ID`, `RECOMMENDED_PM25_24H` and `CITIES` (the 10 cities with coordinates, exactly as in the PHP file).
 
 ### `fetcher/src/openaq/ApiClient.js` (new): generic API calls, errors and retries
 - `class ApiError extends Error` with `status` and `url` fields.
@@ -64,7 +63,7 @@ Data only: `API_BASE`, `RADIUS_M`, `PM25_PARAM_ID`, `WHO_PM25_24H` and `CITIES` 
   - `async sensorHours(sensorId, from, to)`: pages through `/sensors/{id}/hours` (limit 100) and keeps numeric values that are 0 or higher.
   - `async cityPm25(city, lat, lon, from, to)`:
     - Calls `/locations` and keeps the first `maxLocationsPerCity` locations.
-    - Records the per-sensor pm25 stations, the city average, `who_ratio`, `within_who` and `stations_used`.
+    - Builds the per-sensor pm25 stations internally to calculate the city average and `stations_used`, then returns `{ city, pm25_avg, recommended_ratio, within_recommended, stations_used }` (without `stations`).
   - `static timeWindow(now = new Date())`: the UTC time truncated to the hour, minus 24h, as `{ from, to }` strings in `YYYY-MM-DDTHH:mm:ssZ` format.
   - `async run(cityArg)`:
     - Checks the city. An unknown city throws `UnknownCityError` (exit code 2).

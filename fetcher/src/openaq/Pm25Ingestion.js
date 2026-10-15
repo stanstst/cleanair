@@ -1,4 +1,4 @@
-const { RADIUS_M, PM25_PARAM_ID, WHO_PM25_24H, CITIES } = require('./config');
+const { RADIUS_M, PM25_PARAM_ID, RECOMMENDED_PM25_24H, CITIES } = require('./config');
 
 class UnknownCityError extends Error {
   constructor(city) {
@@ -94,10 +94,9 @@ class Pm25Ingestion {
     return {
       city,
       pm25_avg: avg,
-      who_ratio: avg !== null ? round(avg / WHO_PM25_24H, 2) : null,
-      within_who: avg !== null ? avg <= WHO_PM25_24H : null,
+      recommended_ratio: avg !== null ? round(avg / RECOMMENDED_PM25_24H, 2) : null,
+      within_recommended: avg !== null ? avg <= RECOMMENDED_PM25_24H : null,
       stations_used: withData.length,
-      stations,
     };
   }
 
@@ -113,16 +112,15 @@ class Pm25Ingestion {
       results.push(await this.cityPm25(name, lat, lon, from, to));
     }
 
-    const ranked = results.filter((r) => r.pm25_avg !== null).sort((a, b) => a.pm25_avg - b.pm25_avg);
+    const filteredCities = results.filter((r) => r.pm25_avg !== null);
     const noData = results.filter((r) => r.pm25_avg === null);
 
     return {
       pollutant: 'pm25',
       unit: 'µg/m³',
       period: { from, to },
-      who_guideline: WHO_PM25_24H,
-      cleanest: ranked[0]?.city ?? null,
-      ranking: ranked,
+      recommended_guideline: RECOMMENDED_PM25_24H,
+      cities: filteredCities,
       no_data: noData.map((r) => r.city),
       source: 'OpenAQ v3 (reference monitors)',
     };

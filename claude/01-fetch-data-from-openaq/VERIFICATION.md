@@ -118,6 +118,57 @@ curl -s localhost:9091/metrics | grep '^cleanair_job_api_calls'
 - Grafana: the logs show `finished to provision dashboards` with no dashboard errors. The provisioned file inside the container contains the new query. The dashboard has the panels Last duration, Last run, Last status, **API calls (last run)**, Job execution time, and **API calls per run**.
 - I could not check the Grafana API with `admin/admin`, because the admin password has since been changed.
 
+## 8. Slimmer output: no `cleanest`, no `stations`
+`cleanest` was removed from the report (by the user), and `stations` was removed from each city entry. The WHO fields and the report-level fields are kept.
+
+```bash
+docker compose exec -T fetcher node src/job.js sofia
+```
+```json
+{
+  "pollutant": "pm25",
+  "unit": "µg/m³",
+  "period": { "from": "2026-10-14T12:00:00Z", "to": "2026-10-15T12:00:00Z" },
+  "who_guideline": 15,
+  "ranking": [
+    { "city": "sofia", "pm25_avg": 5.5, "who_ratio": 0.37, "within_who": true, "stations_used": 1 }
+  ],
+  "no_data": [],
+  "source": "OpenAQ v3 (reference monitors)"
+}
+```
+- `pm25_avg` is unchanged (5.5), and the exit code is 0.
+- The Pushgateway shows `cleanair_job_api_calls 3` and `cleanair_job_last_success 1`.
+
+## 9. Renamed "who" to "recommended"
+The names were changed as follows; the values and the logic are the same:
+
+| Old | New |
+|---|---|
+| `WHO_PM25_24H` | `RECOMMENDED_PM25_24H` |
+| `who_guideline` | `recommended_guideline` |
+| `who_ratio` | `recommended_ratio` |
+| `within_who` | `within_recommended` |
+
+```bash
+docker compose exec -T fetcher node src/job.js sofia
+```
+```json
+{
+  "pollutant": "pm25",
+  "unit": "µg/m³",
+  "period": { "from": "2026-10-14T13:00:00Z", "to": "2026-10-15T13:00:00Z" },
+  "recommended_guideline": 15,
+  "ranking": [
+    { "city": "sofia", "pm25_avg": 5.5, "recommended_ratio": 0.37, "within_recommended": true, "stations_used": 1 }
+  ],
+  "no_data": [],
+  "source": "OpenAQ v3 (reference monitors)"
+}
+```
+- The exit code is 0, and the Pushgateway shows `cleanair_job_last_success 1`.
+- The only remaining "WHO" in `fetcher/src` is in the user's comment on `Pm25Ingestion.js:26`.
+
 ## Notes
 - **API quota:** a full run made 17 API calls, of which a single city took 3. Fetches run one after another, with at most 3 locations per city (`maxLocationsPerCity`).
 - **Secrets:** the key is only in `.env`, which git ignores. `.env.example` is the committed template.
