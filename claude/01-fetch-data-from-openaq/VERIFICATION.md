@@ -215,6 +215,48 @@ Live runs:
 
 The results match section 10, which used the old positional form.
 
+## 12. MySQL storage (`air_quality`, Flyway)
+```bash
+docker compose up -d --build
+docker compose logs migrate
+docker compose run --rm migrate
+```
+- `mysql` became healthy. `migrate` exited with code 0 and logged `Successfully applied 1 migration to schema cleanair, now at version v1`.
+- Running it again logged `Schema cleanair is up to date. No migration necessary.`
+
+**First run failed, then fixed.** `--city sofia --date-to 2026-10-14` failed with `Column 'average_value' cannot be null`. The per-city field had been renamed from `pm25_avg` to `avg` (commit `55ba875`). Two places were updated to match:
+- `AirQualityRepository` now reads `c.avg`.
+- `Pm25Ingestion.run()` now filters on `r.avg`. It had still filtered on `r.pm25_avg`, which was always `undefined`, so cities without data would have ended up in `cities` with `avg: null` and `no_data` would always have been empty.
+
+After the fix:
+
+| Step | Result |
+|---|---|
+| `--city sofia --date-to 2026-10-14` | Exit 0. Row `1 \| sofia \| pm25 \| 11.1 \| µg/m³ \| 2026-10-14 \| 2026-10-15 17:01:01 \| 15.0 \| 0.74` |
+| Same command again | Still one row, with the same `id` 1 and `created_at`. The upsert works. |
+| `--city sofia` (no date) | New row with `target_date` 2026-10-15 and value 5.3. Its id is 3, because InnoDB uses up an auto-increment value on every `INSERT … ON DUPLICATE KEY UPDATE`; that's normal. |
+| `unit` stored bytes | `HEX(unit)` = `C2B5672F6DC2B3`, which is correct UTF-8 for `µg/m³`. Use `--default-character-set=utf8mb4` in the `mysql` client to display it. |
+| `docker compose stop mysql`, then run | `{"error": "getaddrinfo ENOTFOUND mysql"}`, exit 1, `cleanair_job_last_success 0`. MySQL restarted healthy afterwards. |
+| `docker compose down` / `up -d` | Rows kept (the `mysql-data` volume), and `migrate` reported up to date. |
+| All cities (3 configured: sofia, ruse, varna) | Saved sofia 5.3 (the existing row was updated), ruse 12.3 and varna 6.7, all for 2026-10-15. `no_data` is empty. |
+
+## 13. Fixed MySQL passwords (`cleanair` / `root`)
+The generated passwords were replaced with `MYSQL_PASSWORD=cleanair` and `MYSQL_ROOT_PASSWORD=root` in `.env` and `.env.example`. The volume already existed, so the accounts were changed first, as root, using the old root password:
+```sql
+ALTER USER 'cleanair'@'%' IDENTIFIED BY 'cleanair';
+ALTER USER 'root'@'%' IDENTIFIED BY 'root';
+ALTER USER 'root'@'localhost' IDENTIFIED BY 'root';
+```
+Then `docker compose up -d` recreated `mysql`, `migrate` and `fetcher`.
+
+| Check | Result |
+|---|---|
+| `docker compose ps` | `mysql` healthy (the healthcheck uses the new password), `migrate` exited 0 with `Schema cleanair is up to date`, `fetcher` up |
+| `mysql -ucleanair -pcleanair cleanair` | `SELECT COUNT(*) FROM air_quality` → 4, so no data was lost |
+| `mysql -uroot -proot` | Works |
+| Old `cleanair` password | `ERROR 1045 (28000): Access denied` |
+| `node src/job.js --city sofia` | Exit 0. Today's Sofia row (id 3) was updated in place; the rows are unchanged. |
+
 ## Notes
 - **API quota:** a full run made 17 API calls, of which a single city took 3. Fetches run one after another, with at most 3 locations per city (`maxLocationsPerCity`).
 - **Secrets:** the key is only in `.env`, which git ignores. `.env.example` is the committed template.

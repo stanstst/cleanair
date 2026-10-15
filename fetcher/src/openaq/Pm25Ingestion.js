@@ -124,8 +124,8 @@ class Pm25Ingestion {
       results.push(await this.cityPm25(name, lat, lon, from, to));
     }
 
-    const filteredCities = results.filter((r) => r.pm25_avg !== null);
-    const noData = results.filter((r) => r.pm25_avg === null);
+    const filteredCities = results.filter((r) => r.avg !== null);
+    const noData = results.filter((r) => r.avg === null);
 
     return {
       pollutant: 'pm25',

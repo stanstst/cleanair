@@ -28,7 +28,7 @@
   - Unknown options, an option without a value, or any positional argument (e.g. `node src/job.js sofia`) also exit with code 2.
 - Report fields:
   - `pollutant`, `unit`, `period{from,to}`, `recommended_guideline`
-  - `cities`: the cities with data, in config order (not sorted), with no-data cities excluded. Each entry is `{ city, pm25_avg, recommended_ratio, within_recommended, stations_used }`; the per-station detail is not included in the output.
+  - `cities`: the cities with data, in config order (not sorted), with no-data cities excluded. Each entry is `{ city, avg, recommended_ratio, within_recommended, stations_used }`; the per-station detail is not included in the output.
   - `no_data`: the city names that had no data
   - `source`
 - API call count: recorded in the Prometheus gauge `cleanair_job_api_calls` (PHP prints `Number of Api calls: N` instead).
@@ -66,7 +66,7 @@ Data only: `API_BASE`, `RADIUS_M`, `PM25_PARAM_ID`, `RECOMMENDED_PM25_24H` and `
   - `async sensorHours(sensorId, from, to)`: pages through `/sensors/{id}/hours` (limit 100) and keeps numeric values that are 0 or higher.
   - `async cityPm25(city, lat, lon, from, to)`:
     - Calls `/locations` and keeps the first `maxLocationsPerCity` locations.
-    - Builds the per-sensor pm25 stations internally to calculate the city average and `stations_used`, then returns `{ city, pm25_avg, recommended_ratio, within_recommended, stations_used }` (without `stations`).
+    - Builds the per-sensor pm25 stations internally to calculate the city average and `stations_used`, then returns `{ city, avg, recommended_ratio, within_recommended, stations_used }` (without `stations`). `run()` splits cities into `cities` / `no_data` on `avg !== null`.
   - `static timeWindow(now = new Date())`: the UTC time truncated to the hour, minus 24h, as `{ from, to }` strings in `YYYY-MM-DDTHH:mm:ssZ` format.
   - `async run(cityArg, dateTo)`:
     - Checks the city. An unknown city throws `UnknownCityError` (exit code 2).
@@ -93,6 +93,27 @@ Data only: `API_BASE`, `RADIUS_M`, `PM25_PARAM_ID`, `RECOMMENDED_PM25_24H` and `
 - Add a committed `.env.example` containing `OPENAQ_API_KEY=`.
 - `job.js` throws "OPENAQ_API_KEY is not set" if the key is empty, and injects it as the `X-API-Key` header.
 - Changing `.env` requires `docker compose up -d fetcher` (a restart doesn't re-read the environment).
+
+### MySQL storage
+- **Services** (`docker-compose.yml`):
+  - `mysql` (`mysql:8.4.5`): data in the `mysql-data` volume, port 3306, with a healthcheck (`mysqladmin ping`).
+  - `migrate` (`flyway/flyway:11.10.0`): runs `migrate` once and exits, after `mysql` is healthy. Its connection is set through the `FLYWAY_URL`, `FLYWAY_USER` and `FLYWAY_PASSWORD` environment variables.
+  - `fetcher`: starts only after `migrate` completes successfully.
+- **Credentials:** `MYSQL_ROOT_PASSWORD`, `MYSQL_DATABASE`, `MYSQL_USER` and `MYSQL_PASSWORD` are in `.env` (git-ignored). Local development passwords: `MYSQL_PASSWORD=cleanair` and `MYSQL_ROOT_PASSWORD=root`, which are also in `.env.example` so `cp .env.example .env` works. MySQL only reads these when it initialises an empty volume, so changing them later needs `ALTER USER` first (or `docker compose down -v`, which deletes all data). `fetcher` receives them as `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` and `DB_PASSWORD`.
+- **Schema:** Flyway migrations in `mysql/migrations/`. `V1__create_air_quality.sql` creates `air_quality`:
+  - `id` (auto increment, primary key)
+  - `city`, `pollutant`, `average_value DECIMAL(8,1)`, `unit`
+  - `target_date DATE`
+  - `created_at DATETIME DEFAULT CURRENT_TIMESTAMP`
+  - `recommended_guideline DECIMAL(8,1)`, `recommended_ratio DECIMAL(8,2)`
+  - a unique key on `(city, pollutant, target_date)`
+
+  Flyway records what it has applied in `flyway_schema_history`. Schema changes are new `V<n>__*.sql` files, and applied ones are never edited.
+- **Writing:** `fetcher/src/db/AirQualityRepository.js` (`mysql2/promise`).
+  - `saveReport(report)` upserts one row per entry in `report.cities`, so no-data cities are not saved.
+  - `target_date` is the date part of `period.to`. `--date-to 2026-10-14` gives `2026-10-14`, and a run with no date gives today (UTC).
+  - A re-run for the same city, pollutant and date updates the values and keeps the original `id` and `created_at`.
+  - `job.js` saves the report just before printing it. A database failure fails the run: JSON error, exit code 1, `cleanair_job_last_success 0`.
 
 ### Docs: `claude/01-fetch-data-from-openaq/` (new, named after the branch, following the `claude/initial-fetcher/` pattern)
 - `PLAN.md`: this plan.

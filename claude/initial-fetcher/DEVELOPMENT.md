@@ -9,6 +9,9 @@ The `fetcher` container mounts `./fetcher/src` at `/fetcher/src` (read-only). Ea
 | Add or change dependencies (`fetcher/package.json`) | `docker compose up -d --build fetcher` |
 | Change `fetcher/Dockerfile` | `docker compose up -d --build fetcher` |
 | Change `docker-compose.yml` | `docker compose up -d` (recreates only the services that changed) |
+| Change the database schema | Add a new file `mysql/migrations/V<n>__<description>.sql` (never edit an applied one), then `docker compose run --rm migrate` |
+| Change a MySQL password | MySQL only reads `MYSQL_*_PASSWORD` when the volume is empty. First run `ALTER USER 'cleanair'@'%' IDENTIFIED BY '<new>'` as root (for root, both `'root'@'%'` and `'root'@'localhost'`), then edit `.env`, then `docker compose up -d` |
+| Query the database | `docker compose exec mysql sh -c 'mysql -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" --default-character-set=utf8mb4'` (without the charset flag, `µg/m³` is shown as `�g/m�`) |
 | Change `prometheus/prometheus.yml` | `docker compose restart prometheus` |
 | Change the Grafana dashboard JSON | Grafana reloads it automatically within about 10 seconds, or run `docker compose restart grafana` |
 | Change Grafana datasource provisioning | `docker compose restart grafana` |
