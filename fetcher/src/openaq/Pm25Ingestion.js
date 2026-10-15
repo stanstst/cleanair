@@ -100,7 +100,7 @@ class Pm25Ingestion {
 
     return {
       city,
-      pm25_avg: avg,
+      avg: avg,
       recommended_ratio: avg !== null ? round(avg / RECOMMENDED_PM25_24H, 2) : null,
       within_recommended: avg !== null ? avg <= RECOMMENDED_PM25_24H : null,
       stations_used: withData.length,
