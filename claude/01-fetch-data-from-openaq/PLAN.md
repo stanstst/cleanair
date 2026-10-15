@@ -111,7 +111,7 @@ Data only: `API_BASE`, `RADIUS_M`, `PM25_PARAM_ID`, `RECOMMENDED_PM25_24H` and `
   Flyway records what it has applied in `flyway_schema_history`. Schema changes are new `V<n>__*.sql` files, and applied ones are never edited.
 - **Writing:** `fetcher/src/db/AirQualityRepository.js` (`mysql2/promise`).
   - `saveReport(report)` upserts one row per entry in `report.cities`, so no-data cities are not saved.
-  - `target_date` is the date part of `period.to`. `--date-to 2026-10-14` gives `2026-10-14`, and a run with no date gives today (UTC).
+  - `target_date` is the date part of `period.to`: `new Date(report.period.to).toISOString().split('T')[0]`, which parses it as a Date and formats it as UTC `YYYY-MM-DD`, so the container's time zone can't shift the day. `--date-to 2026-10-14` gives `2026-10-14`, and a run with no date gives today (UTC).
   - A re-run for the same city, pollutant and date updates the values and keeps the original `id` and `created_at`.
   - `job.js` saves the report just before printing it. A database failure fails the run: JSON error, exit code 1, `cleanair_job_last_success 0`.
 

@@ -257,6 +257,15 @@ Then `docker compose up -d` recreated `mysql`, `migrate` and `fetcher`.
 | Old `cleanair` password | `ERROR 1045 (28000): Access denied` |
 | `node src/job.js --city sofia` | Exit 0. Today's Sofia row (id 3) was updated in place; the rows are unchanged. |
 
+## 14. `target_date` via a Date object
+`AirQualityRepository.saveReport()` changed from `report.period.to.slice(0, 10)` to `new Date(report.period.to).toISOString().split('T')[0]`.
+
+| Command | Result |
+|---|---|
+| `--city sofia --date-to 2026-10-14` | Exit 0. Row 1 (`2026-10-14`) was updated in place, with the same `id` and `created_at`. |
+| `--city sofia` | Exit 0. Row 3 (`2026-10-15`) was updated in place. |
+| `SELECT COUNT(*) FROM air_quality` | Still 4, so no new rows. The new formatting produces exactly the same dates as before. |
+
 ## Notes
 - **API quota:** a full run made 17 API calls, of which a single city took 3. Fetches run one after another, with at most 3 locations per city (`maxLocationsPerCity`).
 - **Secrets:** the key is only in `.env`, which git ignores. `.env.example` is the committed template.

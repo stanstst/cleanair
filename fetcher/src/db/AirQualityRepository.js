@@ -11,7 +11,7 @@ class AirQualityRepository {
   }
 
   async saveReport(report) {
-    const targetDate = report.period.to.slice(0, 10);
+    const targetDate = new Date(report.period.to).toISOString().split('T')[0];
     const rows = report.cities.map((c) => [
       c.city,
       report.pollutant,
