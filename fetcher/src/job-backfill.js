@@ -35,15 +35,29 @@ function parseDate(name, value) {
 
 const isoDate = (date) => date.toISOString().split('T')[0];
 
-async function main() {
+async function main({
+  args = process.argv.slice(2),
+  env = process.env,
+  createClient = (apiKey) => new ApiClient({ baseUrl: API_BASE, headers: { 'X-API-Key': apiKey } }),
+  connectRepository = () =>
+    OpenAQRepository.connect({
+      host: env.DB_HOST,
+      port: env.DB_PORT,
+      user: env.DB_USER,
+      password: env.DB_PASSWORD,
+      database: env.DB_NAME,
+    }),
+} = {}) {
   const start = process.hrtime.bigint();
   let success = true;
+  let exitCode = 0;
   let days = 0;
   let client;
   let repository;
 
   try {
     const { values } = parseArgs({
+      args,
       options: { 'start-date': { type: 'string' }, 'end-date': { type: 'string' } },
     });
 
@@ -53,19 +67,13 @@ async function main() {
       throw new UsageError(`start-date '${values['start-date']}' is after end-date '${values['end-date']}'`);
     }
 
-    const apiKey = process.env.OPENAQ_API_KEY;
+    const apiKey = env.OPENAQ_API_KEY;
     if (!apiKey) throw new Error('OPENAQ_API_KEY is not set');
 
-    client = new ApiClient({ baseUrl: API_BASE, headers: { 'X-API-Key': apiKey } });
+    client = createClient(apiKey);
     const ingestion = new AirQualityIngestion(client);
 
-    repository = await OpenAQRepository.connect({
-      host: process.env.DB_HOST,
-      port: process.env.DB_PORT,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
-    });
+    repository = await connectRepository();
 
     for (let d = startDate; d <= endDate; d = new Date(d.getTime() + DAY_MS)) {
       const report = await ingestion.run(undefined, isoDate(d));
@@ -74,7 +82,7 @@ async function main() {
     }
   } catch (err) {
     success = false;
-    process.exitCode = isUsageError(err) ? 2 : 1;
+    exitCode = isUsageError(err) ? 2 : 1;
     console.error(err.message);
   }
 
@@ -84,9 +92,19 @@ async function main() {
   console.info(
     `Backfill finished in ${durationSeconds.toFixed(3)}s (days=${days}, api_calls=${client ? client.callCount : 0}, success=${success})`,
   );
+
+  return exitCode;
 }
 
-main().catch((err) => {
-  console.error('Backfill failed to execute:', err);
-  process.exit(1);
-});
+if (require.main === module) {
+  main()
+    .then((exitCode) => {
+      process.exitCode = exitCode;
+    })
+    .catch((err) => {
+      console.error('Backfill failed to execute:', err);
+      process.exit(1);
+    });
+}
+
+module.exports = { main };

@@ -1,0 +1,141 @@
+{
+  "meta": {
+    "name": "openaq-api",
+    "website": "/",
+    "page": 1,
+    "limit": 100,
+    "found": 1
+  },
+  "results": [
+    {
+      "id": 8857,
+      "name": "AMS Vazrazhdane-Ruse",
+      "locality": "Русе",
+      "timezone": "Europe/Sofia",
+      "country": {
+        "id": 110,
+        "code": "BG",
+        "name": "Bulgaria"
+      },
+      "owner": {
+        "id": 4,
+        "name": "Unknown Governmental Organization"
+      },
+      "provider": {
+        "id": 70,
+        "name": "EEA"
+      },
+      "isMobile": false,
+      "isMonitor": true,
+      "instruments": [
+        {
+          "id": 2,
+          "name": "Government Monitor"
+        }
+      ],
+      "sensors": [
+        {
+          "id": 25840,
+          "name": "co µg/m³",
+          "parameter": {
+            "id": 4,
+            "name": "co",
+            "units": "µg/m³",
+            "displayName": "CO mass"
+          }
+        },
+        {
+          "id": 4273159,
+          "name": "no µg/m³",
+          "parameter": {
+            "id": 19843,
+            "name": "no",
+            "units": "µg/m³",
+            "displayName": "NO mass"
+          }
+        },
+        {
+          "id": 25839,
+          "name": "no2 µg/m³",
+          "parameter": {
+            "id": 5,
+            "name": "no2",
+            "units": "µg/m³",
+            "displayName": "NO₂ mass"
+          }
+        },
+        {
+          "id": 25838,
+          "name": "o3 µg/m³",
+          "parameter": {
+            "id": 3,
+            "name": "o3",
+            "units": "µg/m³",
+            "displayName": "O₃ mass"
+          }
+        },
+        {
+          "id": 25837,
+          "name": "pm10 µg/m³",
+          "parameter": {
+            "id": 1,
+            "name": "pm10",
+            "units": "µg/m³",
+            "displayName": "PM10"
+          }
+        },
+        {
+          "id": 25836,
+          "name": "pm25 µg/m³",
+          "parameter": {
+            "id": 2,
+            "name": "pm25",
+            "units": "µg/m³",
+            "displayName": "PM2.5"
+          }
+        },
+        {
+          "id": 25835,
+          "name": "so2 µg/m³",
+          "parameter": {
+            "id": 6,
+            "name": "so2",
+            "units": "µg/m³",
+            "displayName": "SO₂ mass"
+          }
+        }
+      ],
+      "coordinates": {
+        "latitude": 43.85136699995016,
+        "longitude": 25.964085999705684
+      },
+      "licenses": [
+        {
+          "id": 10,
+          "name": "ODC-BY",
+          "attribution": {
+            "name": "Unknown Governmental Organization",
+            "url": null
+          },
+          "dateFrom": "2016-11-17",
+          "dateTo": null
+        }
+      ],
+      "bounds": [
+        25.964085999705684,
+        43.85136699995016,
+        25.964085999705684,
+        43.85136699995016
+      ],
+      "distance": 1756.66003181,
+      "datetimeFirst": {
+        "utc": "2020-04-20T18:00:00Z",
+        "local": "2020-04-20T21:00:00+03:00"
+      },
+      "datetimeLast": {
+        "utc": "2026-10-16T18:00:00Z",
+        "local": "2026-10-16T21:00:00+03:00"
+      }
+    }
+  ]
+}

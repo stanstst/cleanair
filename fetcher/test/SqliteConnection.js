@@ -24,6 +24,7 @@ const SCHEMA = `
 class SqliteConnection {
   constructor() {
     this.db = new DatabaseSync(':memory:');
+    this.ended = false;
     this.db.exec(SCHEMA);
   }
 
@@ -41,6 +42,10 @@ class SqliteConnection {
   }
 
   async end() {
+    this.ended = true;
+  }
+
+  close() {
     this.db.close();
   }
 }

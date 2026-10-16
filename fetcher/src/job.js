@@ -39,35 +39,44 @@ const isUsageError = (err) =>
   err instanceof InvalidDateToError ||
   String(err.code).startsWith('ERR_PARSE_ARGS_');
 
-async function main() {
+async function main({
+  args = process.argv.slice(2),
+  env = process.env,
+  createClient = (apiKey) => new ApiClient({ baseUrl: API_BASE, headers: { 'X-API-Key': apiKey } }),
+  connectRepository = () =>
+    OpenAQRepository.connect({
+      host: env.DB_HOST,
+      port: env.DB_PORT,
+      user: env.DB_USER,
+      password: env.DB_PASSWORD,
+      database: env.DB_NAME,
+    }),
+  pushgateway = new Pushgateway(PUSHGATEWAY_URL, {}, registry),
+} = {}) {
   const start = process.hrtime.bigint();
   let success = true;
+  let exitCode = 0;
   let client;
   let repository;
 
   try {
     const { values } = parseArgs({
+      args,
       options: { city: { type: 'string' }, 'date-to': { type: 'string' } },
     });
 
-    const apiKey = process.env.OPENAQ_API_KEY;
+    const apiKey = env.OPENAQ_API_KEY;
     if (!apiKey) throw new Error('OPENAQ_API_KEY is not set');
 
-    client = new ApiClient({ baseUrl: API_BASE, headers: { 'X-API-Key': apiKey } });
+    client = createClient(apiKey);
     const report = await new AirQualityIngestion(client).run(values.city, values['date-to']);
 
-    repository = await OpenAQRepository.connect({
-      host: process.env.DB_HOST,
-      port: process.env.DB_PORT,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
-    });
+    repository = await connectRepository();
     await repository.saveReport(report);
 
   } catch (err) {
     success = false;
-    process.exitCode = isUsageError(err) ? 2 : 1;
+    exitCode = isUsageError(err) ? 2 : 1;
     console.error(err.message);
   }
 
@@ -82,11 +91,20 @@ async function main() {
 
   console.info(`Job finished in ${durationSeconds.toFixed(3)}s (success=${success})`);
 
-  const gateway = new Pushgateway(PUSHGATEWAY_URL, {}, registry);
-  await gateway.pushAdd({ jobName: JOB_NAME });
+  await pushgateway.pushAdd({ jobName: JOB_NAME });
+
+  return exitCode;
 }
 
-main().catch((err) => {
-  console.error('Fetcher failed to execute:', err);
-  process.exit(1);
-});
+if (require.main === module) {
+  main()
+    .then((exitCode) => {
+      process.exitCode = exitCode;
+    })
+    .catch((err) => {
+      console.error('Fetcher failed to execute:', err);
+      process.exit(1);
+    });
+}
+
+module.exports = { main };

@@ -22,7 +22,7 @@ const report = {
 const connection = new SqliteConnection();
 const repository = new OpenAQRepository(connection);
 
-after(() => repository.close());
+after(() => connection.close());
 
 test('saveReport inserts one air_quality row for the report city and date', async () => {
   const saved = await repository.saveReport(report);

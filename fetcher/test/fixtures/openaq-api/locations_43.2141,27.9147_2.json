@@ -1,0 +1,141 @@
+{
+  "meta": {
+    "name": "openaq-api",
+    "website": "/",
+    "page": 1,
+    "limit": 100,
+    "found": 1
+  },
+  "results": [
+    {
+      "id": 8843,
+      "name": "AMS SOU Angel Kanchev-Varna",
+      "locality": "Варна",
+      "timezone": "Europe/Sofia",
+      "country": {
+        "id": 110,
+        "code": "BG",
+        "name": "Bulgaria"
+      },
+      "owner": {
+        "id": 4,
+        "name": "Unknown Governmental Organization"
+      },
+      "provider": {
+        "id": 70,
+        "name": "EEA"
+      },
+      "isMobile": false,
+      "isMonitor": true,
+      "instruments": [
+        {
+          "id": 2,
+          "name": "Government Monitor"
+        }
+      ],
+      "sensors": [
+        {
+          "id": 25779,
+          "name": "co µg/m³",
+          "parameter": {
+            "id": 4,
+            "name": "co",
+            "units": "µg/m³",
+            "displayName": "CO mass"
+          }
+        },
+        {
+          "id": 4272879,
+          "name": "no µg/m³",
+          "parameter": {
+            "id": 19843,
+            "name": "no",
+            "units": "µg/m³",
+            "displayName": "NO mass"
+          }
+        },
+        {
+          "id": 25778,
+          "name": "no2 µg/m³",
+          "parameter": {
+            "id": 5,
+            "name": "no2",
+            "units": "µg/m³",
+            "displayName": "NO₂ mass"
+          }
+        },
+        {
+          "id": 25777,
+          "name": "o3 µg/m³",
+          "parameter": {
+            "id": 3,
+            "name": "o3",
+            "units": "µg/m³",
+            "displayName": "O₃ mass"
+          }
+        },
+        {
+          "id": 25776,
+          "name": "pm10 µg/m³",
+          "parameter": {
+            "id": 1,
+            "name": "pm10",
+            "units": "µg/m³",
+            "displayName": "PM10"
+          }
+        },
+        {
+          "id": 25775,
+          "name": "pm25 µg/m³",
+          "parameter": {
+            "id": 2,
+            "name": "pm25",
+            "units": "µg/m³",
+            "displayName": "PM2.5"
+          }
+        },
+        {
+          "id": 25774,
+          "name": "so2 µg/m³",
+          "parameter": {
+            "id": 6,
+            "name": "so2",
+            "units": "µg/m³",
+            "displayName": "SO₂ mass"
+          }
+        }
+      ],
+      "coordinates": {
+        "latitude": 43.22438900023896,
+        "longitude": 27.915733000170828
+      },
+      "licenses": [
+        {
+          "id": 10,
+          "name": "ODC-BY",
+          "attribution": {
+            "name": "Unknown Governmental Organization",
+            "url": null
+          },
+          "dateFrom": "2016-11-17",
+          "dateTo": null
+        }
+      ],
+      "bounds": [
+        27.915733000170828,
+        43.22438900023896,
+        27.915733000170828,
+        43.22438900023896
+      ],
+      "distance": 1146.1544011,
+      "datetimeFirst": {
+        "utc": "2020-04-20T18:00:00Z",
+        "local": "2020-04-20T21:00:00+03:00"
+      },
+      "datetimeLast": {
+        "utc": "2026-10-16T18:00:00Z",
+        "local": "2026-10-16T21:00:00+03:00"
+      }
+    }
+  ]
+}

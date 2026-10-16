@@ -80,6 +80,33 @@ test('run builds the sofia report from the captured API responses', async () => 
   }
 });
 
+const ruse = {
+  city: 'ruse',
+  pollutants: [
+    { pollutant: 'pm25', unit: 'µg/m³', avg: 5.9, recommended_guideline: 15, recommended_ratio: 0.39, within_recommended: true, stations_used: 1 },
+    { pollutant: 'pm10', unit: 'µg/m³', avg: 6.6, recommended_guideline: 45, recommended_ratio: 0.15, within_recommended: true, stations_used: 1 },
+    { pollutant: 'co', unit: 'µg/m³', avg: 258.6, recommended_guideline: 4000, recommended_ratio: 0.06, within_recommended: true, stations_used: 1 },
+  ],
+};
+
+const varna = {
+  city: 'varna',
+  pollutants: [
+    { pollutant: 'pm25', unit: 'µg/m³', avg: 4, recommended_guideline: 15, recommended_ratio: 0.27, within_recommended: true, stations_used: 1 },
+    { pollutant: 'pm10', unit: 'µg/m³', avg: 6.8, recommended_guideline: 45, recommended_ratio: 0.15, within_recommended: true, stations_used: 1 },
+    { pollutant: 'co', unit: 'µg/m³', avg: 397.7, recommended_guideline: 4000, recommended_ratio: 0.1, within_recommended: true, stations_used: 2 },
+  ],
+};
+
+test('run without a city builds the report for all configured cities', async () => {
+  const client = new MockApiClient();
+
+  const report = await new AirQualityIngestion(client).run(undefined, '2026-10-14');
+
+  assert.deepEqual(report, { ...expected, cities: [...expected.cities, ruse, varna] });
+  assert.equal(client.callCount, 29);
+});
+
 test('run rejects an unknown city without calling the API', async () => {
   const client = new MockApiClient();
 

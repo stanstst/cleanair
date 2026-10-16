@@ -88,3 +88,47 @@ The user chose shell wrappers, because the host has no Node/npm and an npm scrip
 - `package.json`: `"test:feature": "test/test-feature.sh"`.
 - `./fetcher/test/test-feature.sh` gives 1 pass, exit 0. The same script run from `/tmp` gives 1 pass, exit 0.
 - `npm run test:feature` itself was not run, because this host has no npm.
+
+## 12. `job.js` feature test
+- `./fetcher/test/test-feature.sh` gives 3 pass, 0 fail, exit 0:
+  - `saveReport inserts one air_quality row …`;
+  - `job saves the sofia air_quality record from the captured API responses`;
+  - `job exits 2 for an unknown city and saves nothing`.
+- `npm test` (unit), run in the image: 3 pass, exit 0.
+- Negative check: with the expected `pm25_average` changed to `11.2`, the job test fails (exit 1) with the diff `+ 11.1 / - 11.2`. The value was then restored.
+- The real job is unchanged after the refactor (`docker compose exec -T fetcher node src/job.js …`):
+
+  | args | output | exit |
+  |---|---|---|
+  | `--city sofia --date-to 2026-10-14` | `Job finished in 4.312s (success=true)` | 0 |
+  | `--city atlantis` | `unknown city 'atlantis'` | 2 |
+  | `--bogus 1` | `Unknown option '--bogus'` | 2 |
+
+- MySQL `air_quality` for sofia 2026-10-14: mean 0.38, max 0.74, pm25 11.1, pm10 12.4, co 519.8. These are the same values the in-memory test asserts.
+- Pushgateway after the last (failed) run: `cleanair_job_last_success 0`, `cleanair_job_api_calls 0`.
+
+## 13. `job-backfill.js` feature test
+- `./fetcher/test/test-feature.sh` gives 5 pass, 0 fail, exit 0. Output includes `Backfill finished in 0.033s (days=2, api_calls=22, success=true)`.
+- `npm test` (unit): 3 pass.
+- The real backfill is unchanged after the refactor (`docker compose exec -T fetcher node src/job-backfill.js …`):
+
+  | args | output | exit |
+  |---|---|---|
+  | `--start-date 11-10-2026` | `--end-date is required (DD-MM-YYYY)` | 2 |
+  | `--start-date 15-10-2026 --end-date 11-10-2026` | `start-date '15-10-2026' is after end-date '11-10-2026'` | 2 |
+  | `--start-date 2026-10-11 --end-date 15-10-2026` | `invalid start-date '2026-10-11', expected DD-MM-YYYY` | 2 |
+  | `--start-date 14-10-2026 --end-date 14-10-2026` | `Backfill finished in 9.793s (days=1, api_calls=29, success=true)` | 0 |
+
+## 14. ruse and varna fixtures, and tests over all 3 cities
+- Capture with `--city ruse --date-to 2026-10-14` gave exit 0, `api_calls=10` and 10 files. Capture with `--city varna` gave exit 0, `api_calls=8` and 8 files. All are owned by `stan`.
+- The 11 sofia fixtures were unchanged (`md5sum -c` before and after).
+- Captured reports:
+  - ruse: pm25 5.9/0.39, pm10 6.6/0.15, co 258.6/0.06, 1 station each;
+  - varna: pm25 4/0.27, pm10 6.8/0.15, co 397.7/0.1 (co from 2 stations).
+- Per day this is 11 + 10 + 8 = 29 calls, the same as the real one-day backfill in section 13.
+- `job-backfill.js`: the `createIngestion` option was removed.
+- `./fetcher/test/test-feature.sh` gives 6 pass, exit 0. New or changed tests:
+  - `job without a city saves one air_quality record per configured city`: 3 rows, 29 calls;
+  - `backfill saves one air_quality record per city per day in the range`: 6 rows, 58 calls.
+- `npm test` (unit) gives 4 pass, exit 0. New: `run without a city builds the report for all configured cities` (29 calls).
+- Real `job-backfill.js --start-date 11-10-2026` still gives `--end-date is required` with exit 2.

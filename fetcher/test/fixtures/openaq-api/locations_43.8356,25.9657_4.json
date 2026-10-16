@@ -1,0 +1,531 @@
+{
+  "meta": {
+    "name": "openaq-api",
+    "website": "/",
+    "page": 1,
+    "limit": 100,
+    "found": 5
+  },
+  "results": [
+    {
+      "id": 8857,
+      "name": "AMS Vazrazhdane-Ruse",
+      "locality": "Русе",
+      "timezone": "Europe/Sofia",
+      "country": {
+        "id": 110,
+        "code": "BG",
+        "name": "Bulgaria"
+      },
+      "owner": {
+        "id": 4,
+        "name": "Unknown Governmental Organization"
+      },
+      "provider": {
+        "id": 70,
+        "name": "EEA"
+      },
+      "isMobile": false,
+      "isMonitor": true,
+      "instruments": [
+        {
+          "id": 2,
+          "name": "Government Monitor"
+        }
+      ],
+      "sensors": [
+        {
+          "id": 25840,
+          "name": "co µg/m³",
+          "parameter": {
+            "id": 4,
+            "name": "co",
+            "units": "µg/m³",
+            "displayName": "CO mass"
+          }
+        },
+        {
+          "id": 4273159,
+          "name": "no µg/m³",
+          "parameter": {
+            "id": 19843,
+            "name": "no",
+            "units": "µg/m³",
+            "displayName": "NO mass"
+          }
+        },
+        {
+          "id": 25839,
+          "name": "no2 µg/m³",
+          "parameter": {
+            "id": 5,
+            "name": "no2",
+            "units": "µg/m³",
+            "displayName": "NO₂ mass"
+          }
+        },
+        {
+          "id": 25838,
+          "name": "o3 µg/m³",
+          "parameter": {
+            "id": 3,
+            "name": "o3",
+            "units": "µg/m³",
+            "displayName": "O₃ mass"
+          }
+        },
+        {
+          "id": 25837,
+          "name": "pm10 µg/m³",
+          "parameter": {
+            "id": 1,
+            "name": "pm10",
+            "units": "µg/m³",
+            "displayName": "PM10"
+          }
+        },
+        {
+          "id": 25836,
+          "name": "pm25 µg/m³",
+          "parameter": {
+            "id": 2,
+            "name": "pm25",
+            "units": "µg/m³",
+            "displayName": "PM2.5"
+          }
+        },
+        {
+          "id": 25835,
+          "name": "so2 µg/m³",
+          "parameter": {
+            "id": 6,
+            "name": "so2",
+            "units": "µg/m³",
+            "displayName": "SO₂ mass"
+          }
+        }
+      ],
+      "coordinates": {
+        "latitude": 43.85136699995016,
+        "longitude": 25.964085999705684
+      },
+      "licenses": [
+        {
+          "id": 10,
+          "name": "ODC-BY",
+          "attribution": {
+            "name": "Unknown Governmental Organization",
+            "url": null
+          },
+          "dateFrom": "2016-11-17",
+          "dateTo": null
+        }
+      ],
+      "bounds": [
+        25.964085999705684,
+        43.85136699995016,
+        25.964085999705684,
+        43.85136699995016
+      ],
+      "distance": 1756.66003181,
+      "datetimeFirst": {
+        "utc": "2020-04-20T18:00:00Z",
+        "local": "2020-04-20T21:00:00+03:00"
+      },
+      "datetimeLast": {
+        "utc": "2026-10-16T18:00:00Z",
+        "local": "2026-10-16T21:00:00+03:00"
+      }
+    },
+    {
+      "id": 9433,
+      "name": "RO0209A",
+      "locality": "Giurgiu",
+      "timezone": "Europe/Bucharest",
+      "country": {
+        "id": 74,
+        "code": "RO",
+        "name": "Romania"
+      },
+      "owner": {
+        "id": 4,
+        "name": "Unknown Governmental Organization"
+      },
+      "provider": {
+        "id": 193,
+        "name": "EEA Romania"
+      },
+      "isMobile": false,
+      "isMonitor": true,
+      "instruments": [
+        {
+          "id": 2,
+          "name": "Government Monitor"
+        }
+      ],
+      "sensors": [
+        {
+          "id": 6311524,
+          "name": "co µg/m³",
+          "parameter": {
+            "id": 4,
+            "name": "co",
+            "units": "µg/m³",
+            "displayName": "CO mass"
+          }
+        },
+        {
+          "id": 28747,
+          "name": "no2 µg/m³",
+          "parameter": {
+            "id": 5,
+            "name": "no2",
+            "units": "µg/m³",
+            "displayName": "NO₂ mass"
+          }
+        }
+      ],
+      "coordinates": {
+        "latitude": 43.8754389994635,
+        "longitude": 25.931781
+      },
+      "licenses": [
+        {
+          "id": 10,
+          "name": "ODC-BY",
+          "attribution": {
+            "name": "Unknown Governmental Organization",
+            "url": null
+          },
+          "dateFrom": "2020-04-19",
+          "dateTo": null
+        }
+      ],
+      "bounds": [
+        25.931781,
+        43.8754389994635,
+        25.931781,
+        43.8754389994635
+      ],
+      "distance": 5199.125769,
+      "datetimeFirst": {
+        "utc": "2020-07-29T13:00:00Z",
+        "local": "2020-07-29T16:00:00+03:00"
+      },
+      "datetimeLast": {
+        "utc": "2024-01-29T20:00:00Z",
+        "local": "2024-01-29T22:00:00+02:00"
+      }
+    },
+    {
+      "id": 10807,
+      "name": "GR-2",
+      "locality": "GIURGIU",
+      "timezone": "Europe/Bucharest",
+      "country": {
+        "id": 74,
+        "code": "RO",
+        "name": "Romania"
+      },
+      "owner": {
+        "id": 4,
+        "name": "Unknown Governmental Organization"
+      },
+      "provider": {
+        "id": 70,
+        "name": "EEA"
+      },
+      "isMobile": false,
+      "isMonitor": true,
+      "instruments": [
+        {
+          "id": 2,
+          "name": "Government Monitor"
+        }
+      ],
+      "sensors": [
+        {
+          "id": 11438910,
+          "name": "co µg/m³",
+          "parameter": {
+            "id": 4,
+            "name": "co",
+            "units": "µg/m³",
+            "displayName": "CO mass"
+          }
+        },
+        {
+          "id": 36096,
+          "name": "no2 µg/m³",
+          "parameter": {
+            "id": 5,
+            "name": "no2",
+            "units": "µg/m³",
+            "displayName": "NO₂ mass"
+          }
+        },
+        {
+          "id": 36099,
+          "name": "o3 µg/m³",
+          "parameter": {
+            "id": 3,
+            "name": "o3",
+            "units": "µg/m³",
+            "displayName": "O₃ mass"
+          }
+        },
+        {
+          "id": 10976099,
+          "name": "pm10 µg/m³",
+          "parameter": {
+            "id": 1,
+            "name": "pm10",
+            "units": "µg/m³",
+            "displayName": "PM10"
+          }
+        },
+        {
+          "id": 10975762,
+          "name": "so2 µg/m³",
+          "parameter": {
+            "id": 6,
+            "name": "so2",
+            "units": "µg/m³",
+            "displayName": "SO₂ mass"
+          }
+        }
+      ],
+      "coordinates": {
+        "latitude": 43.895550000102986,
+        "longitude": 25.956574999663896
+      },
+      "licenses": [
+        {
+          "id": 10,
+          "name": "ODC-BY",
+          "attribution": {
+            "name": "Unknown Governmental Organization",
+            "url": null
+          },
+          "dateFrom": "2016-11-17",
+          "dateTo": null
+        }
+      ],
+      "bounds": [
+        25.956574999663896,
+        43.895550000102986,
+        25.956574999663896,
+        43.895550000102986
+      ],
+      "distance": 6701.28925006,
+      "datetimeFirst": {
+        "utc": "2020-04-20T19:00:00Z",
+        "local": "2020-04-20T22:00:00+03:00"
+      },
+      "datetimeLast": {
+        "utc": "2026-10-10T21:00:00Z",
+        "local": "2026-10-11T00:00:00+03:00"
+      }
+    },
+    {
+      "id": 2163180,
+      "name": "GR-3",
+      "locality": "GIURGIU",
+      "timezone": "Europe/Bucharest",
+      "country": {
+        "id": 74,
+        "code": "RO",
+        "name": "Romania"
+      },
+      "owner": {
+        "id": 4,
+        "name": "Unknown Governmental Organization"
+      },
+      "provider": {
+        "id": 70,
+        "name": "EEA"
+      },
+      "isMobile": false,
+      "isMonitor": true,
+      "instruments": [
+        {
+          "id": 2,
+          "name": "Government Monitor"
+        }
+      ],
+      "sensors": [
+        {
+          "id": 7773741,
+          "name": "co µg/m³",
+          "parameter": {
+            "id": 4,
+            "name": "co",
+            "units": "µg/m³",
+            "displayName": "CO mass"
+          }
+        },
+        {
+          "id": 8622708,
+          "name": "no2 µg/m³",
+          "parameter": {
+            "id": 5,
+            "name": "no2",
+            "units": "µg/m³",
+            "displayName": "NO₂ mass"
+          }
+        },
+        {
+          "id": 8622716,
+          "name": "pm10 µg/m³",
+          "parameter": {
+            "id": 1,
+            "name": "pm10",
+            "units": "µg/m³",
+            "displayName": "PM10"
+          }
+        },
+        {
+          "id": 10997404,
+          "name": "so2 µg/m³",
+          "parameter": {
+            "id": 6,
+            "name": "so2",
+            "units": "µg/m³",
+            "displayName": "SO₂ mass"
+          }
+        }
+      ],
+      "coordinates": {
+        "latitude": 43.87545799991835,
+        "longitude": 25.93167499985032
+      },
+      "licenses": [
+        {
+          "id": 10,
+          "name": "ODC-BY",
+          "attribution": {
+            "name": "Unknown Governmental Organization",
+            "url": null
+          },
+          "dateFrom": "2016-11-17",
+          "dateTo": null
+        }
+      ],
+      "bounds": [
+        25.93167499985032,
+        43.87545799991835,
+        25.93167499985032,
+        43.87545799991835
+      ],
+      "distance": 5205.39688203,
+      "datetimeFirst": {
+        "utc": "2024-01-28T23:00:00Z",
+        "local": "2024-01-29T01:00:00+02:00"
+      },
+      "datetimeLast": {
+        "utc": "2026-09-21T16:00:00Z",
+        "local": "2026-09-21T19:00:00+03:00"
+      }
+    },
+    {
+      "id": 2163182,
+      "name": "GR-3",
+      "locality": "GIURGIU",
+      "timezone": "Europe/Bucharest",
+      "country": {
+        "id": 74,
+        "code": "RO",
+        "name": "Romania"
+      },
+      "owner": {
+        "id": 4,
+        "name": "Unknown Governmental Organization"
+      },
+      "provider": {
+        "id": 70,
+        "name": "EEA"
+      },
+      "isMobile": false,
+      "isMonitor": true,
+      "instruments": [
+        {
+          "id": 2,
+          "name": "Government Monitor"
+        }
+      ],
+      "sensors": [
+        {
+          "id": 7776593,
+          "name": "co µg/m³",
+          "parameter": {
+            "id": 4,
+            "name": "co",
+            "units": "µg/m³",
+            "displayName": "CO mass"
+          }
+        },
+        {
+          "id": 8613199,
+          "name": "no2 µg/m³",
+          "parameter": {
+            "id": 5,
+            "name": "no2",
+            "units": "µg/m³",
+            "displayName": "NO₂ mass"
+          }
+        },
+        {
+          "id": 8613341,
+          "name": "pm10 µg/m³",
+          "parameter": {
+            "id": 1,
+            "name": "pm10",
+            "units": "µg/m³",
+            "displayName": "PM10"
+          }
+        },
+        {
+          "id": 10997403,
+          "name": "so2 µg/m³",
+          "parameter": {
+            "id": 6,
+            "name": "so2",
+            "units": "µg/m³",
+            "displayName": "SO₂ mass"
+          }
+        }
+      ],
+      "coordinates": {
+        "latitude": 43.87545799991835,
+        "longitude": 25.93167499985032
+      },
+      "licenses": [
+        {
+          "id": 10,
+          "name": "ODC-BY",
+          "attribution": {
+            "name": "Unknown Governmental Organization",
+            "url": null
+          },
+          "dateFrom": "2016-11-17",
+          "dateTo": null
+        }
+      ],
+      "bounds": [
+        25.93167499985032,
+        43.87545799991835,
+        25.93167499985032,
+        43.87545799991835
+      ],
+      "distance": 5205.39688203,
+      "datetimeFirst": {
+        "utc": "2024-01-29T01:00:00Z",
+        "local": "2024-01-29T03:00:00+02:00"
+      },
+      "datetimeLast": {
+        "utc": "2026-10-10T21:00:00Z",
+        "local": "2026-10-11T00:00:00+03:00"
+      }
+    }
+  ]
+}

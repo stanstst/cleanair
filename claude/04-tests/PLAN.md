@@ -203,3 +203,140 @@ The user has already copied `fetcher/bin/test-feature.sh` to `fetcher/test/test-
 - Run from `/tmp` by its absolute path, it also passes.
 - `npm run test:feature` can't be run on this host (no npm). Its effect is shown by mounting the repo's `fetcher/` into a node container with the docker socket… which is too heavy, so it is skipped. The script name and path are checked by `grep`.
 - `git status`: `fetcher/bin/test-feature.sh` is gone, and `fetcher/src/` is unchanged.
+
+## Revision: feature test for `job.js` (mock API client, real ingestion + repository, in-memory DB)
+
+### Context
+The user wants an end-to-end feature test of `fetcher/src/job.js` that uses:
+- `MockApiClient`, the fixture-backed client;
+- the real `AirQualityIngestion` and the real `OpenAQRepository`;
+- assertions on the real record(s) in the in-memory database (`SqliteConnection`).
+
+`job.js` can't be tested as it is today:
+- `main()` runs as soon as the file is required.
+- It builds `ApiClient` and `OpenAQRepository.connect()` (MySQL) itself, reads `process.argv` and `process.env`, sets `process.exitCode`, and pushes to Pushgateway.
+- Nothing is exported.
+
+### Approach: a small dependency-injection refactor of `job.js` (behaviour unchanged)
+`main` takes optional dependencies, and their defaults are exactly what the job does today:
+```js
+async function main({
+  args = process.argv.slice(2),
+  env = process.env,
+  createClient = (apiKey) => new ApiClient({ baseUrl: API_BASE, headers: { 'X-API-Key': apiKey } }),
+  connectRepository = () => OpenAQRepository.connect({ host: env.DB_HOST, port: env.DB_PORT, user: env.DB_USER, password: env.DB_PASSWORD, database: env.DB_NAME }),
+  pushgateway = new Pushgateway(PUSHGATEWAY_URL, {}, registry),
+} = {}) { … return exitCode; }
+```
+- `parseArgs({ args, options })`, with the `OPENAQ_API_KEY` check read from `env`.
+- `main` **returns** the exit code (0, 1 or 2) instead of setting `process.exitCode`. A test that sets `process.exitCode` would make `node --test` report a failure.
+- Entry point:
+  ```js
+  if (require.main === module) main().then((code) => { process.exitCode = code; }).catch(…existing handler…);
+  module.exports = { main };
+  ```
+- The metrics, the log lines, `repository.close()` and the Pushgateway push all stay. Only where the dependencies come from changes.
+- `node src/job.js --city … --date-to …` behaves the same: same exit codes, output and metrics.
+
+The alternative, stubbing `require.cache` / `mysql2` / `prom-client` without touching `job.js`, is rejected as brittle.
+
+### `fetcher/test/SqliteConnection.js` (small change)
+`job.js` closes the repository before the test can query. So:
+- `end()` only sets `this.ended = true`, which the test asserts to show that the job closed the repository;
+- a new `close()` really closes the SQLite database;
+- `feature/OpenAQRepository.test.js` changes its `after` to `connection.close()`.
+
+### `fetcher/test/feature/job.test.js` (new)
+Shared setup: `const connection = new SqliteConnection()`, `const client = new MockApiClient()`, `pushes = []`, and
+```js
+const exitCode = await main({
+  args: ['--city', 'sofia', '--date-to', '2026-10-14'],
+  env: { OPENAQ_API_KEY: 'test-key' },
+  createClient: () => client,
+  connectRepository: async () => new OpenAQRepository(connection),
+  pushgateway: { pushAdd: async (params) => { pushes.push(params); } },
+});
+```
+1. **The job saves the sofia record.**
+   - `exitCode === 0`.
+   - `connection.all('SELECT * FROM air_quality')` has exactly 1 row, and it deep-equals (without `created_at`):
+     - `{ id: 1, city: 'sofia', target_date: '2026-10-14', mean_ratio: 0.38, max_ratio: 0.74 }`;
+     - pm25 11.1 / 'µg/m³' / 0.74, pm10 12.4 / 0.28, co 519.8 / 0.13.
+
+     These values come from the captured fixtures through the real `AirQualityIngestion` and the real `OpenAQRepository`.
+   - `client.callCount === 11`.
+   - `connection.ended === true`.
+   - `pushes` deep-equals `[{ jobName: 'cleanair_job' }]`.
+2. **Unknown city.**
+   - `args: ['--city', 'atlantis']` gives `exitCode === 2`.
+   - 0 rows, `client.callCount === 0`.
+   - The push still happens, as the job does today when a run fails.
+
+`job.js` prints `Job finished …` during the test. That is expected.
+
+### Running
+- The tests sit in `test/feature/`, so the existing `npm run test:feature` / `./fetcher/test/test-feature.sh` picks them up, offline.
+- It doesn't need MySQL, Pushgateway or the API.
+
+### Not in scope
+`job-backfill.js` has the same structure. The same refactor would make it testable, but that is left for a later step.
+
+### Docs
+- `DEVELOPMENT.md`: the job test, `main`'s injectable dependencies, and `SqliteConnection.end`/`close`.
+- `VERIFICATION.md`: the results.
+- `PLAN.md`: append this revision.
+
+### Verification
+- `./fetcher/test/test-feature.sh`: 3 pass (repository + 2 job tests), exit 0.
+- `npm test` / unit: still 3 pass.
+- The real job is unchanged: in the running container, `docker compose exec fetcher node src/job.js --city sofia --date-to 2026-10-14` exits 0 and prints `Job finished … (success=true)`. This makes 11 real API calls and upserts the same MySQL row. An unknown city gives exit 2.
+- Negative check: temporarily change the expected `pm25_average`. The job test fails, then the value is restored.
+
+## Revision: same refactor and feature test for `job-backfill.js`
+- `fetcher/src/job-backfill.js`:
+  - `main({ args, env, createClient, createIngestion, connectRepository })`, where the defaults are the old behaviour;
+  - it returns the exit code;
+  - it runs only when `require.main === module`, and exports `{ main }`.
+- `fetcher/test/feature/job-backfill.test.js`:
+  - a 2-day sofia-only backfill gives 2 rows, 22 calls, the right date windows, and the repository closed;
+  - start after end gives exit 2, no rows and no calls.
+- Limits: the fixtures cover sofia only, and the fixture names don't include the date. So the test injects a sofia-only `AirQualityIngestion`, and both days have the same values.
+
+## Revision: capture fixtures for ruse and varna, and use all 3 cities in the tests
+
+### Context
+The fixtures cover only sofia. Because of that, the `job-backfill.js` test injects a sofia-only `AirQualityIngestion` (`createIngestion`), and no test runs the default "all cities" path. The user wants ruse and varna captured too.
+
+### Capture (real API, same date, 2026-10-14)
+```bash
+docker compose run --rm --no-deps --user "$(id -u):$(id -g)" -v "$PWD/fetcher/test:/fetcher/test" \
+  fetcher node test/capture-openaq-api-fixtures.js --city ruse --date-to 2026-10-14
+… --city varna --date-to 2026-10-14
+```
+- Each city is captured on its own, so the existing sofia files aren't overwritten with newer data.
+- New files: `locations_43.8356,25.9657_{1,2,4}.json` and `locations_43.2141,27.9147_{1,2,4}.json`, plus `sensors_<id>_hours_page1.json` for their sensors.
+- Before writing, check that no new sensor id clashes with an existing sofia sensor file. Different locations should mean different sensors.
+- About 20 API calls in total, under the rate limit.
+- Each run prints a report. Those values become the expected values in the tests. If a city returns no data, the expected values follow (`no_data`, no row).
+
+### Tests
+- `test/unit/AirQualityIngestion.test.js`: add `run(undefined, '2026-10-14')`. It deep-equals the full 3-city report (sofia, ruse and varna, or `no_data`) and the total call count.
+- `test/feature/job.test.js`: add "no `--city`". It expects exit 0, one row per city with data, every column checked, and the total call count.
+- `test/feature/job-backfill.test.js`:
+  - drop the sofia-only `createIngestion` and run the real default ingestion over all 3 cities;
+  - for `13-10-2026..14-10-2026`, expect 2 days × 3 cities = 6 rows (by `target_date, city`), with call count = 2 × the per-day total.
+- `fetcher/src/job-backfill.js`: remove the `createIngestion` option, since only the test needed it. Its dependencies then match `job.js`: `args`, `env`, `createClient` and `connectRepository`. Behaviour is unchanged.
+- Shared expected rows: each test file keeps its own literals, like the existing tests. No new helper.
+
+### Remaining limit
+Fixture names don't include the date, so in the backfill test both days still have the 2026-10-14 values.
+
+### Docs
+- `DEVELOPMENT.md`: the fixtures now cover all 3 cities, the capture commands are listed per city, and the sofia-only limit is removed.
+- `VERIFICATION.md`: the capture output and the test results.
+- `PLAN.md`: append this revision.
+
+### Verification
+- Both capture runs exit 0, and the new files are owned by the host user. `git status` shows only added fixture files, with the sofia files unchanged.
+- `./fetcher/test/test-feature.sh` and `npm test` (unit) pass offline (`--network none`).
+- `docker compose exec fetcher node src/job-backfill.js --start-date 11-10-2026` still exits 2, which confirms the entry point after removing `createIngestion`.
