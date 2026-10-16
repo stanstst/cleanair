@@ -1,4 +1,4 @@
-const { RADIUS_M, PM25_PARAM_ID, RECOMMENDED_PM25_24H, CITIES } = require('./config');
+const { RADIUS_M, POLLUTANTS, CITIES } = require('./config');
 
 class UnknownCityError extends Error {
   constructor(city) {
@@ -29,12 +29,11 @@ const mean =(values) => values.reduce((sum, v) => sum + v, 0) / values.length;
 
 const isoSeconds = (date) => date.toISOString().replace(/\.\d{3}Z$/, 'Z');
 
-// OpenAQ-specific ingestion: finds PM2.5 monitors near each city, averages
-// their last 24 hours, and ranks the cities against the WHO 24h guideline.
-class Pm25Ingestion {
-  constructor(client, { cities = CITIES, maxLocationsPerCity = 3 } = {}) {
+class AirQualityIngestion {
+  constructor(client, { cities = CITIES, pollutants = POLLUTANTS, maxLocationsPerCity = 3 } = {}) {
     this.client = client;
     this.cities = cities;
+    this.pollutants = pollutants;
     this.maxLocationsPerCity = maxLocationsPerCity;
   }
 
@@ -45,7 +44,6 @@ class Pm25Ingestion {
     return { from: isoSeconds(from), to: isoSeconds(to) };
   }
 
-  /** Hourly PM2.5 values for one sensor (handles paging). */
   async sensorHours(sensorId, from, to) {
     const values = [];
     let page = 1;
@@ -68,12 +66,13 @@ class Pm25Ingestion {
     return values;
   }
 
-  async cityPm25(city, lat, lon, from, to) {
+  async cityPollutant(city, lat, lon, pollutant, from, to) {
+    const { parameterId, unit, recommendedGuideline } = this.pollutants[pollutant];
     const json = await this.client.get('/locations', {
       coordinates: `${lat},${lon}`,
       radius: RADIUS_M,
       monitor: 'true',
-      parameters_id: PM25_PARAM_ID,
+      parameters_id: parameterId,
       limit: 100,
     });
     // limit api calls, to prevent exceeding the free limit
@@ -82,27 +81,29 @@ class Pm25Ingestion {
     const stations = [];
     for (const loc of locations) {
       for (const sensor of loc.sensors ?? []) {
-        if (sensor.parameter?.name !== 'pm25') continue;
+        if (sensor.parameter?.name !== pollutant) continue;
 
         const values = await this.sensorHours(sensor.id, from, to);
         stations.push({
           location_id: loc.id,
           name: loc.name ?? null,
           sensor_id: sensor.id,
-          pm25_avg: values.length ? round(mean(values), 1) : null,
+          avg: values.length ? round(mean(values), 1) : null,
           hours: values.length,
         });
       }
     }
 
-    const withData = stations.filter((s) => s.pm25_avg !== null);
-    const avg = withData.length ? round(mean(withData.map((s) => s.pm25_avg)), 1) : null;
+    const withData = stations.filter((s) => s.avg !== null);
+    const avg = withData.length ? round(mean(withData.map((s) => s.avg)), 1) : null;
 
     return {
-      city,
-      avg: avg,
-      recommended_ratio: avg !== null ? round(avg / RECOMMENDED_PM25_24H, 2) : null,
-      within_recommended: avg !== null ? avg <= RECOMMENDED_PM25_24H : null,
+      pollutant,
+      unit,
+      avg,
+      recommended_guideline: recommendedGuideline,
+      recommended_ratio: avg !== null ? round(avg / recommendedGuideline, 2) : null,
+      within_recommended: avg !== null ? avg <= recommendedGuideline : null,
       stations_used: withData.length,
     };
   }
@@ -117,21 +118,22 @@ class Pm25Ingestion {
     if (reference > now) throw new InvalidDateToError(dateTo, ' is in the future');
 
     const cities = arg ? { [arg]: this.cities[arg] } : this.cities;
-    const { from, to } = Pm25Ingestion.timeWindow(reference);
+    const { from, to } = AirQualityIngestion.timeWindow(reference);
 
     const results = [];
     for (const [name, [lat, lon]] of Object.entries(cities)) {
-      results.push(await this.cityPm25(name, lat, lon, from, to));
+      const pollutants = [];
+      for (const pollutant of Object.keys(this.pollutants)) {
+        pollutants.push(await this.cityPollutant(name, lat, lon, pollutant, from, to));
+      }
+      results.push({ city: name, pollutants: pollutants.filter((p) => p.avg !== null) });
     }
 
-    const filteredCities = results.filter((r) => r.avg !== null);
-    const noData = results.filter((r) => r.avg === null);
+    const filteredCities = results.filter((r) => r.pollutants.length > 0);
+    const noData = results.filter((r) => r.pollutants.length === 0);
 
     return {
-      pollutant: 'pm25',
-      unit: 'µg/m³',
       period: { from, to },
-      recommended_guideline: RECOMMENDED_PM25_24H,
       cities: filteredCities,
       no_data: noData.map((r) => r.city),
       source: 'OpenAQ v3 (reference monitors)',
@@ -139,4 +141,4 @@ class Pm25Ingestion {
   }
 }
 
-module.exports = { Pm25Ingestion, UnknownCityError, InvalidDateToError };
+module.exports = { AirQualityIngestion, UnknownCityError, InvalidDateToError };

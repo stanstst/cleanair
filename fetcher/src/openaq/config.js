@@ -1,8 +1,12 @@
 module.exports = {
   API_BASE: 'https://api.openaq.org/v3',
   RADIUS_M: 15000,
-  PM25_PARAM_ID: 2,
-  RECOMMENDED_PM25_24H: 15, // µg/m³
+
+  POLLUTANTS: {
+    pm25: { parameterId: 2, unit: 'µg/m³', recommendedGuideline: 15 },
+    pm10: { parameterId: 1, unit: 'µg/m³', recommendedGuideline: 45 },
+    co: { parameterId: 4, unit: 'µg/m³', recommendedGuideline: 4000 },
+  },
 
   CITIES: {
     sofia: [42.6977, 23.3219],
