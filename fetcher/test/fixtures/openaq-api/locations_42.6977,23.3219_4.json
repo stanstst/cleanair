@@ -1,0 +1,491 @@
+{
+  "meta": {
+    "name": "openaq-api",
+    "website": "/",
+    "page": 1,
+    "limit": 100,
+    "found": 4
+  },
+  "results": [
+    {
+      "id": 8844,
+      "name": "AMS ExEA/Pavlovo-Sofia",
+      "locality": "София (столица)",
+      "timezone": "Europe/Sofia",
+      "country": {
+        "id": 110,
+        "code": "BG",
+        "name": "Bulgaria"
+      },
+      "owner": {
+        "id": 4,
+        "name": "Unknown Governmental Organization"
+      },
+      "provider": {
+        "id": 70,
+        "name": "EEA"
+      },
+      "isMobile": false,
+      "isMonitor": true,
+      "instruments": [
+        {
+          "id": 2,
+          "name": "Government Monitor"
+        }
+      ],
+      "sensors": [
+        {
+          "id": 25784,
+          "name": "co µg/m³",
+          "parameter": {
+            "id": 4,
+            "name": "co",
+            "units": "µg/m³",
+            "displayName": "CO mass"
+          }
+        },
+        {
+          "id": 4273057,
+          "name": "no µg/m³",
+          "parameter": {
+            "id": 19843,
+            "name": "no",
+            "units": "µg/m³",
+            "displayName": "NO mass"
+          }
+        },
+        {
+          "id": 25783,
+          "name": "no2 µg/m³",
+          "parameter": {
+            "id": 5,
+            "name": "no2",
+            "units": "µg/m³",
+            "displayName": "NO₂ mass"
+          }
+        },
+        {
+          "id": 25782,
+          "name": "o3 µg/m³",
+          "parameter": {
+            "id": 3,
+            "name": "o3",
+            "units": "µg/m³",
+            "displayName": "O₃ mass"
+          }
+        },
+        {
+          "id": 25781,
+          "name": "pm10 µg/m³",
+          "parameter": {
+            "id": 1,
+            "name": "pm10",
+            "units": "µg/m³",
+            "displayName": "PM10"
+          }
+        },
+        {
+          "id": 25780,
+          "name": "so2 µg/m³",
+          "parameter": {
+            "id": 6,
+            "name": "so2",
+            "units": "µg/m³",
+            "displayName": "SO₂ mass"
+          }
+        }
+      ],
+      "coordinates": {
+        "latitude": 42.669796999685126,
+        "longitude": 23.26840299970644
+      },
+      "licenses": [
+        {
+          "id": 10,
+          "name": "ODC-BY",
+          "attribution": {
+            "name": "Unknown Governmental Organization",
+            "url": null
+          },
+          "dateFrom": "2016-11-17",
+          "dateTo": null
+        }
+      ],
+      "bounds": [
+        23.26840299970644,
+        42.669796999685126,
+        23.26840299970644,
+        42.669796999685126
+      ],
+      "distance": 5369.51414625,
+      "datetimeFirst": {
+        "utc": "2020-04-20T18:00:00Z",
+        "local": "2020-04-20T21:00:00+03:00"
+      },
+      "datetimeLast": {
+        "utc": "2026-10-16T14:00:00Z",
+        "local": "2026-10-16T17:00:00+03:00"
+      }
+    },
+    {
+      "id": 8846,
+      "name": "AMS Kopitoto",
+      "locality": "София (столица)",
+      "timezone": "Europe/Sofia",
+      "country": {
+        "id": 110,
+        "code": "BG",
+        "name": "Bulgaria"
+      },
+      "owner": {
+        "id": 4,
+        "name": "Unknown Governmental Organization"
+      },
+      "provider": {
+        "id": 70,
+        "name": "EEA"
+      },
+      "isMobile": false,
+      "isMonitor": true,
+      "instruments": [
+        {
+          "id": 2,
+          "name": "Government Monitor"
+        }
+      ],
+      "sensors": [
+        {
+          "id": 25793,
+          "name": "co µg/m³",
+          "parameter": {
+            "id": 4,
+            "name": "co",
+            "units": "µg/m³",
+            "displayName": "CO mass"
+          }
+        },
+        {
+          "id": 4273144,
+          "name": "no µg/m³",
+          "parameter": {
+            "id": 19843,
+            "name": "no",
+            "units": "µg/m³",
+            "displayName": "NO mass"
+          }
+        },
+        {
+          "id": 25792,
+          "name": "no2 µg/m³",
+          "parameter": {
+            "id": 5,
+            "name": "no2",
+            "units": "µg/m³",
+            "displayName": "NO₂ mass"
+          }
+        },
+        {
+          "id": 25791,
+          "name": "o3 µg/m³",
+          "parameter": {
+            "id": 3,
+            "name": "o3",
+            "units": "µg/m³",
+            "displayName": "O₃ mass"
+          }
+        },
+        {
+          "id": 25790,
+          "name": "pm10 µg/m³",
+          "parameter": {
+            "id": 1,
+            "name": "pm10",
+            "units": "µg/m³",
+            "displayName": "PM10"
+          }
+        },
+        {
+          "id": 6283928,
+          "name": "pm25 µg/m³",
+          "parameter": {
+            "id": 2,
+            "name": "pm25",
+            "units": "µg/m³",
+            "displayName": "PM2.5"
+          }
+        },
+        {
+          "id": 25789,
+          "name": "so2 µg/m³",
+          "parameter": {
+            "id": 6,
+            "name": "so2",
+            "units": "µg/m³",
+            "displayName": "SO₂ mass"
+          }
+        }
+      ],
+      "coordinates": {
+        "latitude": 42.63719199997135,
+        "longitude": 23.243863999567886
+      },
+      "licenses": [
+        {
+          "id": 10,
+          "name": "ODC-BY",
+          "attribution": {
+            "name": "Unknown Governmental Organization",
+            "url": null
+          },
+          "dateFrom": "2016-11-17",
+          "dateTo": null
+        }
+      ],
+      "bounds": [
+        23.243863999567886,
+        42.63719199997135,
+        23.243863999567886,
+        42.63719199997135
+      ],
+      "distance": 9279.32882073,
+      "datetimeFirst": {
+        "utc": "2020-04-20T18:00:00Z",
+        "local": "2020-04-20T21:00:00+03:00"
+      },
+      "datetimeLast": {
+        "utc": "2026-10-16T14:00:00Z",
+        "local": "2026-10-16T17:00:00+03:00"
+      }
+    },
+    {
+      "id": 8856,
+      "name": "AMS Hipodruma-Sofia",
+      "locality": "София (столица)",
+      "timezone": "Europe/Sofia",
+      "country": {
+        "id": 110,
+        "code": "BG",
+        "name": "Bulgaria"
+      },
+      "owner": {
+        "id": 4,
+        "name": "Unknown Governmental Organization"
+      },
+      "provider": {
+        "id": 70,
+        "name": "EEA"
+      },
+      "isMobile": false,
+      "isMonitor": true,
+      "instruments": [
+        {
+          "id": 2,
+          "name": "Government Monitor"
+        }
+      ],
+      "sensors": [
+        {
+          "id": 25834,
+          "name": "co µg/m³",
+          "parameter": {
+            "id": 4,
+            "name": "co",
+            "units": "µg/m³",
+            "displayName": "CO mass"
+          }
+        },
+        {
+          "id": 25833,
+          "name": "no2 µg/m³",
+          "parameter": {
+            "id": 5,
+            "name": "no2",
+            "units": "µg/m³",
+            "displayName": "NO₂ mass"
+          }
+        },
+        {
+          "id": 25832,
+          "name": "o3 µg/m³",
+          "parameter": {
+            "id": 3,
+            "name": "o3",
+            "units": "µg/m³",
+            "displayName": "O₃ mass"
+          }
+        },
+        {
+          "id": 25831,
+          "name": "pm10 µg/m³",
+          "parameter": {
+            "id": 1,
+            "name": "pm10",
+            "units": "µg/m³",
+            "displayName": "PM10"
+          }
+        },
+        {
+          "id": 1293779,
+          "name": "pm25 µg/m³",
+          "parameter": {
+            "id": 2,
+            "name": "pm25",
+            "units": "µg/m³",
+            "displayName": "PM2.5"
+          }
+        },
+        {
+          "id": 25830,
+          "name": "so2 µg/m³",
+          "parameter": {
+            "id": 6,
+            "name": "so2",
+            "units": "µg/m³",
+            "displayName": "SO₂ mass"
+          }
+        }
+      ],
+      "coordinates": {
+        "latitude": 42.68055800032477,
+        "longitude": 23.29678599964189
+      },
+      "licenses": [
+        {
+          "id": 10,
+          "name": "ODC-BY",
+          "attribution": {
+            "name": "Unknown Governmental Organization",
+            "url": null
+          },
+          "dateFrom": "2016-11-17",
+          "dateTo": null
+        }
+      ],
+      "bounds": [
+        23.29678599964189,
+        42.68055800032477,
+        23.29678599964189,
+        42.68055800032477
+      ],
+      "distance": 2803.92413569,
+      "datetimeFirst": {
+        "utc": "2020-04-20T18:00:00Z",
+        "local": "2020-04-20T21:00:00+03:00"
+      },
+      "datetimeLast": {
+        "utc": "2026-10-16T14:00:00Z",
+        "local": "2026-10-16T17:00:00+03:00"
+      }
+    },
+    {
+      "id": 2162110,
+      "name": "AMS Mladost-Sofia",
+      "locality": "National air network",
+      "timezone": "Europe/Sofia",
+      "country": {
+        "id": 110,
+        "code": "BG",
+        "name": "Bulgaria"
+      },
+      "owner": {
+        "id": 4,
+        "name": "Unknown Governmental Organization"
+      },
+      "provider": {
+        "id": 70,
+        "name": "EEA"
+      },
+      "isMobile": false,
+      "isMonitor": true,
+      "instruments": [
+        {
+          "id": 2,
+          "name": "Government Monitor"
+        }
+      ],
+      "sensors": [
+        {
+          "id": 7775516,
+          "name": "co µg/m³",
+          "parameter": {
+            "id": 4,
+            "name": "co",
+            "units": "µg/m³",
+            "displayName": "CO mass"
+          }
+        },
+        {
+          "id": 7774348,
+          "name": "no µg/m³",
+          "parameter": {
+            "id": 19843,
+            "name": "no",
+            "units": "µg/m³",
+            "displayName": "NO mass"
+          }
+        },
+        {
+          "id": 7774593,
+          "name": "no2 µg/m³",
+          "parameter": {
+            "id": 5,
+            "name": "no2",
+            "units": "µg/m³",
+            "displayName": "NO₂ mass"
+          }
+        },
+        {
+          "id": 7775991,
+          "name": "pm10 µg/m³",
+          "parameter": {
+            "id": 1,
+            "name": "pm10",
+            "units": "µg/m³",
+            "displayName": "PM10"
+          }
+        },
+        {
+          "id": 7773329,
+          "name": "so2 µg/m³",
+          "parameter": {
+            "id": 6,
+            "name": "so2",
+            "units": "µg/m³",
+            "displayName": "SO₂ mass"
+          }
+        }
+      ],
+      "coordinates": {
+        "latitude": 42.655487999914236,
+        "longitude": 23.383270999989932
+      },
+      "licenses": [
+        {
+          "id": 10,
+          "name": "ODC-BY",
+          "attribution": {
+            "name": "Unknown Governmental Organization",
+            "url": null
+          },
+          "dateFrom": "2016-11-17",
+          "dateTo": null
+        }
+      ],
+      "bounds": [
+        23.383270999989932,
+        42.655487999914236,
+        23.383270999989932,
+        42.655487999914236
+      ],
+      "distance": 6877.02674171,
+      "datetimeFirst": {
+        "utc": "2024-01-28T23:00:00Z",
+        "local": "2024-01-29T01:00:00+02:00"
+      },
+      "datetimeLast": {
+        "utc": "2026-10-16T14:00:00Z",
+        "local": "2026-10-16T17:00:00+03:00"
+      }
+    }
+  ]
+}
