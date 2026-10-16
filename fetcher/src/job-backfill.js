@@ -13,8 +13,6 @@ class UsageError extends Error {
   }
 }
 
-const printJson = (data) => console.log(JSON.stringify(data, null, 2));
-
 const isUsageError = (err) =>
   err instanceof UsageError ||
   err instanceof UnknownCityError ||
@@ -73,18 +71,17 @@ async function main() {
       const report = await ingestion.run(undefined, isoDate(d));
       await repository.saveReport(report);
       days++;
-      printJson(report);
     }
   } catch (err) {
     success = false;
     process.exitCode = isUsageError(err) ? 2 : 1;
-    printJson({ error: err.message });
+    console.error(err.message);
   }
 
   await repository?.close().catch(() => {});
 
   const durationSeconds = Number(process.hrtime.bigint() - start) / 1e9;
-  console.error(
+  console.info(
     `Backfill finished in ${durationSeconds.toFixed(3)}s (days=${days}, api_calls=${client ? client.callCount : 0}, success=${success})`,
   );
 }

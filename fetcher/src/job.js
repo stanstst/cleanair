@@ -34,8 +34,6 @@ const apiCallsGauge = new Gauge({
   registers: [registry],
 });
 
-const printJson = (data) => console.log(JSON.stringify(data, null, 2));
-
 const isUsageError = (err) =>
   err instanceof UnknownCityError ||
   err instanceof InvalidDateToError ||
@@ -67,11 +65,10 @@ async function main() {
     });
     await repository.saveReport(report);
 
-    printJson(report);
   } catch (err) {
     success = false;
     process.exitCode = isUsageError(err) ? 2 : 1;
-    printJson({ error: err.message });
+    console.error(err.message);
   }
 
   await repository?.close().catch(() => {});
@@ -83,7 +80,7 @@ async function main() {
   lastRunGauge.set(Date.now() / 1000);
   lastSuccessGauge.set(success ? 1 : 0);
 
-  console.error(`Job finished in ${durationSeconds.toFixed(3)}s (success=${success})`);
+  console.info(`Job finished in ${durationSeconds.toFixed(3)}s (success=${success})`);
 
   const gateway = new Pushgateway(PUSHGATEWAY_URL, {}, registry);
   await gateway.pushAdd({ jobName: JOB_NAME });

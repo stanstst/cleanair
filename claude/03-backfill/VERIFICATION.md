@@ -27,7 +27,7 @@ A probe showed:
 - `HTTP 429`, `x-ratelimit-limit: 60`, `x-ratelimit-remaining: 0`, `x-ratelimit-reset: 18`, `{"detail":"Too many requests"}`.
 - Polling every 10s showed a **fixed 60s window**: `reset` counts down 60 → 7, then `used` goes back to 1.
 
-Fix (see the PLAN revision): on 429, `ApiClient` waits `x-ratelimit-reset` seconds. The second attempt also stopped at 61 calls. It had started in the same minute the edit was saved (file mtime 17:05, run 17:05:12–17:05:48), and it gave up in about 4s, so it never reached the new wait. A later `grep -c ratelimit` in the container returned 1.
+Fix (see the PLAN revision): on 429, `ApiClient` waits `x-ratelimit-reset` seconds. The second attempt also stopped at 61 calls. The container was still serving the old `ApiClient.js`. A `grep` in the container right after the run found no `x-ratelimit-reset`, and a later `grep -c ratelimit` returned 1. This is the Docker Desktop stale bind-mount issue described in DEVELOPMENT.md.
 
 ## 4. 5-day backfill
 ```bash
@@ -65,3 +65,12 @@ Running the same command again gave exit 0, `days=5, api_calls=145`, in 123.9s. 
 ## 7. No metrics, untouched files
 - `cleanair_job_last_run_timestamp_seconds` in Pushgateway is still `1.792152733189e+09` after all the backfill runs.
 - `git status --short` shows `M fetcher/src/openaq/ApiClient.js`, `?? fetcher/src/job-backfill.js` and `?? claude/03-backfill/`. `job.js`, `AirQualityIngestion.js`, `OpenAQRepository.js` and the `claude/01-*`, `claude/02-*` and `claude/initial-fetcher` folders are unchanged.
+
+## 8. Logging (`console.error` / `console.info`)
+`printJson` was removed from both jobs (`grep -n printJson fetcher/src/job*.js` finds nothing). After `docker compose restart fetcher`, needed because of the stale mount:
+
+| Command | Exit | stdout | stderr |
+|---|---|---|---|
+| `job-backfill.js --start-date 32-10-2026 --end-date 15-10-2026` | 2 | `Backfill finished in 0.004s (days=0, api_calls=0, success=false)` | `invalid start-date '32-10-2026'` |
+| `job.js --city nowhere` | 2 | `Job finished in 0.004s (success=false)` | `unknown city 'nowhere'` |
+| `job-backfill.js --start-date 15-10-2026 --end-date 15-10-2026` | 0 | `Backfill finished in 11.220s (days=1, api_calls=29, success=true)` | (empty) |

@@ -73,3 +73,10 @@ The user chose to fix this in `ApiClient`, so `job.js` benefits too:
 - **5xx** keeps the `attempt * 2` second backoff.
 
 In `job-backfill.js`, a missing option, a malformed date and start-after-end throw a local `UsageError` (exit 2), so the messages name `start-date` or `end-date`. A future end date still fails through `InvalidDateToError` from `AirQualityIngestion.run`.
+
+## Revision: logging
+The user removed `printJson(report)` from `job.js` and `job-backfill.js`, so reports are no longer printed. In both files:
+- The error in `catch` changes from `printJson({ error: err.message })` on stdout to `console.error(err.message)` on stderr.
+- The finished line (`Job finished …` / `Backfill finished …`) is a normal completion, so it changes from `console.error` to `console.info` (stdout). The user chose `console.info` over adding a logger with a `notice` level.
+- The unused `printJson` helper is removed.
+Exit codes, `job.js`'s Prometheus metrics and the `main().catch` handler are unchanged.
