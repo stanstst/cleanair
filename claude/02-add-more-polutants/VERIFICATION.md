@@ -79,3 +79,38 @@ The error paths in section 5 were checked before the layout change. The reposito
 
 ## 6. Untouched docs
 `git status --short claude/01-fetch-data-from-openaq claude/initial-fetcher` shows no changes.
+
+## 7. Mean and max ratio (V3)
+```bash
+docker compose run --rm migrate
+```
+- `migrate` logged `Successfully applied 1 migration to schema cleanair, now at version v3`.
+- `SELECT COUNT(*) FROM air_quality` returned 0, so the existing rows were deleted.
+- `SHOW CREATE TABLE` shows `mean_ratio decimal(8,2) NOT NULL` and `max_ratio decimal(8,2) NOT NULL` right after `target_date`.
+- The container sees the new repository (`grep -c mean_ratio` returns 2).
+
+| Command | Result |
+|---|---|
+| `--city sofia --date-to 2026-10-14` | Exit 0. Row 6: ratios 0.74 / 0.28 / 0.13, `mean_ratio` **0.38**, `max_ratio` **0.74** |
+| Same command again | Still one row, with the same `id` (6) and `created_at`. Exit 0. |
+| All cities | Exit 0 |
+
+| id | city | target_date | mean_ratio | max_ratio | pm25_ratio | pm10_ratio | co_ratio |
+|---|---|---|---|---|---|---|---|
+| 6 | sofia | 2026-10-14 | 0.38 | 0.74 | 0.74 | 0.28 | 0.13 |
+| 8 | sofia | 2026-10-16 | 0.29 | 0.40 | 0.34 | 0.40 | 0.13 |
+| 9 | ruse | 2026-10-16 | 0.43 | 0.84 | 0.84 | 0.36 | 0.09 |
+| 10 | varna | 2026-10-16 | 0.28 | 0.47 | 0.47 | 0.26 | 0.11 |
+
+- A SQL comparison of `mean_ratio` and `max_ratio` against values recomputed from the three ratio columns gives **0 mismatches**.
+- Ids continue from 6 because `AUTO_INCREMENT` isn't reset by `DELETE`. Id 7 was used up by the repeated run (`ON DUPLICATE KEY UPDATE`).
+
+Missing-data check, with `rowFor` only and no database write. Sofia has pm25 0.74 and co 0.13, and no pm10:
+```
+["sofia","2026-10-14",0.44,0.74,11.1,"µg/m³",0.74,null,null,null,519.8,"µg/m³",0.13]
+```
+- `mean_ratio` is (0.74 + 0.13) / 2 = 0.435, which rounds to **0.44**, and `max_ratio` is **0.74**. Only the available ratios are used, and the pm10 columns are `null`.
+- A city with no pollutants throws `no ratios for x`.
+
+`git status --short claude/01-fetch-data-from-openaq claude/initial-fetcher` shows no changes.
+

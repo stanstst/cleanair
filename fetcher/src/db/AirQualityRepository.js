@@ -3,6 +3,11 @@ const { POLLUTANTS } = require('../openaq/config');
 
 const COLUMN_NAME = /^[a-z0-9_]+$/;
 
+function round(n, decimals) {
+  const f = 10 ** decimals;
+  return (Math.sign(n) * Math.round(Math.abs(n) * f + Number.EPSILON)) / f;
+}
+
 class AirQualityRepository {
   constructor(connection, pollutants = POLLUTANTS) {
     const keys = Object.keys(pollutants);
@@ -26,7 +31,15 @@ class AirQualityRepository {
       return p ? [p.avg, p.unit, p.recommended_ratio] : [null, null, null];
     });
 
-    return [city.city, targetDate, ...values];
+    const ratios = this.pollutantKeys
+      .map((key) => byPollutant[key]?.recommended_ratio)
+      .filter((r) => r !== null && r !== undefined);
+    if (ratios.length === 0) throw new Error(`no ratios for ${city.city}`);
+
+    const meanRatio = round(ratios.reduce((sum, r) => sum + r, 0) / ratios.length, 2);
+    const maxRatio = Math.max(...ratios);
+
+    return [city.city, targetDate, meanRatio, maxRatio, ...values];
   }
 
   async saveReport(report) {
@@ -34,8 +47,8 @@ class AirQualityRepository {
     const rows = report.cities.map((c) => this.rowFor(c, targetDate));
     if (rows.length === 0) return 0;
 
-    const columns = ['city', 'target_date', ...this.pollutantColumns];
-    const updates = this.pollutantColumns.map((col) => `${col} = VALUES(${col})`);
+    const columns = ['city', 'target_date', 'mean_ratio', 'max_ratio', ...this.pollutantColumns];
+    const updates = ['mean_ratio', 'max_ratio', ...this.pollutantColumns].map((col) => `${col} = VALUES(${col})`);
 
     await this.connection.query(
       `INSERT INTO air_quality (${columns.join(', ')})

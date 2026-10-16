@@ -128,3 +128,30 @@ All edits are made in place. Check the container sees them with `docker compose 
 4. `--city nowhere` should exit with code 2, and MySQL being down should give exit code 1.
 5. `grep -rn "Pm25\|PM25_PARAM_ID\|RECOMMENDED_PM25_24H\|pm25_avg\|average_value\|recommended_guideline\b" fetcher/src` should find nothing outside the JSON field names, which keep `recommended_guideline`.
 6. `git status --short claude/01-fetch-data-from-openaq claude/initial-fetcher` should show no changes.
+
+## Mean and max ratio (V3)
+Added after step 02 was committed (`81a3fa9`). There are two new `NOT NULL` columns right after `target_date`:
+- `mean_ratio`: the mean of the pollutant ratios (`pm25_ratio`, `pm10_ratio`, `co_ratio`)
+- `max_ratio`: the largest of them
+
+Both are calculated in `AirQualityRepository`.
+
+### `mysql/migrations/V3__add_mean_max_ratio.sql`
+The user asked for the existing rows to be deleted, so there's no backfill. The `NOT NULL` columns are added to an empty table, and the job refills it.
+```sql
+DELETE FROM air_quality;
+
+ALTER TABLE air_quality
+  ADD COLUMN mean_ratio DECIMAL(8,2) NOT NULL AFTER target_date,
+  ADD COLUMN max_ratio DECIMAL(8,2) NOT NULL AFTER mean_ratio;
+```
+Column order: `id, city, target_date, mean_ratio, max_ratio, pm25_average, pm25_unit, pm25_ratio, pm10_average, pm10_unit, pm10_ratio, co_average, co_unit, co_ratio, created_at`.
+
+### `fetcher/src/db/AirQualityRepository.js`
+- `rowFor` collects the non-`NULL` ratios of the configured pollutants. Pollutants without data are skipped, as the user chose.
+  - `mean_ratio` is the mean of those ratios, rounded to 2 decimals with a local `round` helper (half away from zero, the same as `AirQualityIngestion`).
+  - `max_ratio` is `Math.max` of them.
+  - It throws `no ratios for <city>` if there are none, which can't happen for saved cities.
+- The insert columns and `ON DUPLICATE KEY UPDATE` include `mean_ratio` and `max_ratio`.
+- The JSON output doesn't change.
+

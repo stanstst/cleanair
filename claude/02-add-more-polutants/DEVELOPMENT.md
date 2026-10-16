@@ -24,6 +24,7 @@ All three are in **µg/m³**. CO's WHO 24h guideline is 4 mg/m³, which is **400
 
 ```
 id, city, target_date,
+mean_ratio, max_ratio,
 pm25_average, pm25_unit, pm25_ratio,
 pm10_average, pm10_unit, pm10_ratio,
 co_average,  co_unit,  co_ratio,
@@ -33,6 +34,8 @@ created_at
 | Column | Notes |
 |---|---|
 | `target_date` | The date part of `period.to`. Unique key: `(city, target_date)`. |
+| `mean_ratio` | `NOT NULL`. The mean of the available (non-`NULL`) `<key>_ratio` values of the configured pollutants, rounded to 2 decimals (half away from zero). Calculated in `AirQualityRepository.rowFor`. Added by `V3__add_mean_max_ratio.sql`. |
+| `max_ratio` | `NOT NULL`. The largest available `<key>_ratio`. Same source and migration. |
 | `<key>_average` | The 24h average of the pollutant, with 1 decimal |
 | `<key>_unit` | The unit from `POLLUTANTS` (currently `µg/m³`) |
 | `<key>_ratio` | `average / recommendedGuideline`, with 2 decimals. The guideline itself is not stored; it's in `config.js` and in the JSON output. |
@@ -65,6 +68,7 @@ docker compose exec mysql mysql -ucleanair -pcleanair cleanair --default-charact
    Then run `docker compose run --rm migrate`.
 3. Add the entry to `POLLUTANTS`, with the WHO 24h guideline in that unit (for example no2 25, so2 40 µg/m³). O₃ has only an 8-hour guideline (100 µg/m³).
 4. Run the job. The repository builds its column list from `POLLUTANTS`, so no code change is needed. If you add the config entry without the migration, the insert fails with "Unknown column".
+5. `mean_ratio` and `max_ratio` automatically include the new pollutant's ratio from then on. Rows saved earlier keep their old mean and max until that city and day is fetched again.
 
 Removing a pollutant from `POLLUTANTS` stops filling its columns. Existing values stay.
 
