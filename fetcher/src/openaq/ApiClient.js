@@ -40,7 +40,13 @@ class ApiClient {
       if (status === 401 || status === 403) {
         throw new ApiError(`API rejected the credentials (HTTP ${status}) from ${url}`, { status, url });
       }
-      if (status === 429 || status >= 500) {
+      if (status === 429) {
+        await res.body?.cancel();
+        const reset = Number(res.headers.get('x-ratelimit-reset'));
+        await sleep((Number.isFinite(reset) && reset > 0 ? reset : 60) * 1000);
+        continue;
+      }
+      if (status >= 500) {
         await res.body?.cancel();
         await sleep(attempt * 2000);
         continue;
