@@ -8,7 +8,7 @@ function round(n, decimals) {
   return (Math.sign(n) * Math.round(Math.abs(n) * f + Number.EPSILON)) / f;
 }
 
-class AirQualityRepository {
+class OpenAQRepository {
   constructor(connection, pollutants = POLLUTANTS) {
     const keys = Object.keys(pollutants);
     const invalid = keys.find((key) => !COLUMN_NAME.test(key));
@@ -21,7 +21,7 @@ class AirQualityRepository {
 
   static async connect({ host, port = 3306, user, password, database }, pollutants = POLLUTANTS) {
     const connection = await mysql.createConnection({ host, port: Number(port), user, password, database });
-    return new AirQualityRepository(connection, pollutants);
+    return new OpenAQRepository(connection, pollutants);
   }
 
   rowFor(city, targetDate) {
@@ -64,4 +64,4 @@ class AirQualityRepository {
   }
 }
 
-module.exports = { AirQualityRepository };
+module.exports = { OpenAQRepository };

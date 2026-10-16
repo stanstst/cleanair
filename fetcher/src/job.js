@@ -3,7 +3,7 @@ const { Registry, Gauge, Pushgateway } = require('prom-client');
 const { ApiClient } = require('./openaq/ApiClient');
 const { API_BASE } = require('./openaq/config');
 const { AirQualityIngestion, UnknownCityError, InvalidDateToError } = require('./openaq/AirQualityIngestion');
-const { AirQualityRepository } = require('./db/AirQualityRepository');
+const { OpenAQRepository } = require('./db/OpenAQRepository');
 
 const PUSHGATEWAY_URL = process.env.PUSHGATEWAY_URL || 'http://pushgateway:9091';
 const JOB_NAME = 'cleanair_job';
@@ -58,7 +58,7 @@ async function main() {
     client = new ApiClient({ baseUrl: API_BASE, headers: { 'X-API-Key': apiKey } });
     const report = await new AirQualityIngestion(client).run(values.city, values['date-to']);
 
-    repository = await AirQualityRepository.connect({
+    repository = await OpenAQRepository.connect({
       host: process.env.DB_HOST,
       port: process.env.DB_PORT,
       user: process.env.DB_USER,

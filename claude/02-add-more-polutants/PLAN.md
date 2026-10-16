@@ -155,3 +155,6 @@ Column order: `id, city, target_date, mean_ratio, max_ratio, pm25_average, pm25_
 - The insert columns and `ON DUPLICATE KEY UPDATE` include `mean_ratio` and `max_ratio`.
 - The JSON output doesn't change.
 
+## Rename: `AirQualityRepository` → `OpenAQRepository`
+The class and its file were renamed: `fetcher/src/db/AirQualityRepository.js` → `fetcher/src/db/OpenAQRepository.js`. `job.js` imports and uses `OpenAQRepository`. The behaviour doesn't change. The sections above use the old name, because that's what it was called at the time.
+

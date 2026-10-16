@@ -114,3 +114,7 @@ Missing-data check, with `rowFor` only and no database write. Sofia has pm25 0.7
 
 `git status --short claude/01-fetch-data-from-openaq claude/initial-fetcher` shows no changes.
 
+## 8. Rename `AirQualityRepository` → `OpenAQRepository`
+- `grep -rn AirQualityRepository fetcher/src` finds nothing. The container's `src/db` contains only `OpenAQRepository.js`.
+- `node src/job.js --city sofia --date-to 2026-10-14` exits 0. Row 6 is updated in place (`mean_ratio` 0.38, `max_ratio` 0.74, same `created_at`).
+

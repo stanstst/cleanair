@@ -34,7 +34,7 @@ created_at
 | Column | Notes |
 |---|---|
 | `target_date` | The date part of `period.to`. Unique key: `(city, target_date)`. |
-| `mean_ratio` | `NOT NULL`. The mean of the available (non-`NULL`) `<key>_ratio` values of the configured pollutants, rounded to 2 decimals (half away from zero). Calculated in `AirQualityRepository.rowFor`. Added by `V3__add_mean_max_ratio.sql`. |
+| `mean_ratio` | `NOT NULL`. The mean of the available (non-`NULL`) `<key>_ratio` values of the configured pollutants, rounded to 2 decimals (half away from zero). Calculated in `OpenAQRepository.rowFor` (`fetcher/src/db/OpenAQRepository.js`). Added by `V3__add_mean_max_ratio.sql`. |
 | `max_ratio` | `NOT NULL`. The largest available `<key>_ratio`. Same source and migration. |
 | `<key>_average` | The 24h average of the pollutant, with 1 decimal |
 | `<key>_unit` | The unit from `POLLUTANTS` (currently `µg/m³`) |
