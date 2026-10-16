@@ -10,6 +10,8 @@
 | `fetcher/test/fixtures/openaq-api/*.json` | Real OpenAQ responses for `--city sofia --date-to 2026-10-14` |
 | `fetcher/test/feature/OpenAQRepository.test.js` | `node:test` test for `OpenAQRepository.saveReport` against an in-memory SQLite database |
 | `fetcher/test/SqliteConnection.js` | Stand-in for a mysql2 connection, backed by `node:sqlite` (`:memory:`) with the `air_quality` table |
+| `fetcher/test/test-feature.sh` | Host script behind `npm run test:feature`. Runs the `test/feature` tests in the image, offline |
+| `fetcher/bin/test-unit.sh` | Host wrapper: runs `npm test` in the image, offline |
 
 No new dependencies: the tests use the built-in `node:test` and `node:assert/strict`.
 
@@ -36,7 +38,18 @@ One folder only:
 - `test/feature/`: `OpenAQRepository` with the in-memory SQLite `SqliteConnection`.
 - The shared helpers and `fixtures/` stay in `test/`.
 
-`npm test` runs the same glob. It needs the image to be rebuilt first, because `package.json` is baked into the image.
+npm scripts in `fetcher/package.json`:
+- `npm test` runs `test/unit/**/*.test.js`, inside the image.
+- `npm run test:feature` runs `test/test-feature.sh` on the host. That script starts the `cleanair-fetcher` image and runs `node --disable-warning=ExperimentalWarning --test 'test/feature/**/*.test.js'` in it. This needs npm and Docker on the host. It doesn't work inside the container, which has no `docker`.
+
+Without npm on the host, call the scripts directly. Both mount `package.json`, `src` and `test` read-only and use `--network none`:
+```bash
+./fetcher/test/test-feature.sh   # test/feature tests
+./fetcher/bin/test-unit.sh       # npm test (test/unit) in the image
+```
+- Paths are resolved from the script's own location, so the scripts work from any directory.
+- Extra arguments are passed through to `node --test`.
+- The mounted `package.json` means the image only needs a rebuild when dependencies change.
 
 ## Re-capturing fixtures
 This makes real API calls (11 for sofia) and overwrites the matching files in `fixtures/openaq-api/`:
@@ -56,6 +69,6 @@ If `AirQualityIngestion` makes a call that has no fixture, `MockApiClient.get` t
   - `ON DUPLICATE KEY UPDATE` → `ON CONFLICT (city, target_date) DO UPDATE SET`;
   - `VALUES(col)` → `excluded.col`.
 - The test saves a one-city (sofia, 2026-10-14) report. It checks that `saveReport` returns 1 and that exactly one row is in `air_quality`, and it compares every column except `created_at`. `created_at` is matched against `YYYY-MM-DD HH:MM:SS`.
-- `node:sqlite` is built into Node 22, which the image uses. It prints `ExperimentalWarning: SQLite is an experimental feature`, which is harmless.
+- `node:sqlite` is built into Node 22, which the image uses. Loading it prints `ExperimentalWarning: SQLite is an experimental feature`. The warning is harmless, but it looks like an error, so `test/test-feature.sh` hides it with `node --disable-warning=ExperimentalWarning`.
 - Limits: the test covers the repository's columns, values, `target_date` and mean/max ratio. It does not cover MySQL itself (DECIMAL rounding, or the exact `ON DUPLICATE KEY` behaviour).
 - If the schema changes in a new migration, update `SCHEMA` in `SqliteConnection.js` to match.

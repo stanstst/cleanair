@@ -173,3 +173,33 @@ Verification:
 - The full offline run (`docker run --network none … node --test 'test/**/*.test.js'`) passes 4 of 4.
 - `test/unit` alone passes 3 tests and `test/feature` alone passes 1.
 - `git status` shows the renames, with `fetcher/src/` unchanged.
+
+## Revision: `test-feature.sh` moves to `fetcher/test/`, and `npm run test:feature` runs it
+
+### Context
+The user has already copied `fetcher/bin/test-feature.sh` to `fetcher/test/test-feature.sh` and cleared `"test:feature"` in `package.json`. They want `test:feature` to run the `test/feature` tests through the Docker command. The npm script becomes the host-side entry point, and it calls the shell script.
+
+### Changes
+- `fetcher/test/test-feature.sh`:
+  - `FETCHER_DIR` stays `dirname/..`, which is still `fetcher/`.
+  - Inside the container it no longer calls `npm run test:feature`, because that would now recurse back into the script. It runs node directly:
+    `cleanair-fetcher node --disable-warning=ExperimentalWarning --test 'test/feature/**/*.test.js' "$@"`
+  - The executable bit is kept.
+- `fetcher/package.json`: `"test:feature": "test/test-feature.sh"`.
+- Delete `fetcher/bin/test-feature.sh`, the old copy. `fetcher/bin/test-unit.sh` is left as it is, since the user didn't ask to change it.
+
+### Notes
+- `npm run test:feature` now runs on a machine with npm **and** Docker. It no longer works inside the container, which has no `docker`.
+- This host has no npm, so here `./fetcher/test/test-feature.sh` is the way to run it.
+- The test globs (`*.test.js`) don't match `.sh`, so the script isn't picked up as a test.
+
+### Docs
+- `DEVELOPMENT.md`: update the wrapper paths and the `test:feature` meaning.
+- `VERIFICATION.md`: add the result.
+- `PLAN.md`: append this revision.
+
+### Verification
+- `./fetcher/test/test-feature.sh` gives 1 pass, exit 0.
+- Run from `/tmp` by its absolute path, it also passes.
+- `npm run test:feature` can't be run on this host (no npm). Its effect is shown by mounting the repo's `fetcher/` into a node container with the docker socket… which is too heavy, so it is skipped. The script name and path are checked by `grep`.
+- `git status`: `fetcher/bin/test-feature.sh` is gone, and `fetcher/src/` is unchanged.

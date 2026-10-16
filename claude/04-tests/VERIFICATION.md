@@ -72,3 +72,19 @@ Negative check: with the expected `mean_ratio` temporarily changed to `0.39`, te
 | `'test/feature/**/*.test.js'` | 1 pass, exit 0 |
 
 All three runs used `--network none`. `fetcher/src/` is unchanged.
+
+## 9. `test:feature` npm script
+- `fetcher/package.json`: `"test"` runs `'test/unit/**/*.test.js'` (changed by the user). The new `"test:feature"` runs `'test/feature/**/*.test.js'`.
+- `npm run test:feature`, run in the image with `package.json`, `src` and `test` mounted and `--network none`, gives 1 pass, exit 0.
+- Follow-up: the SQLite `ExperimentalWarning` in the output looked like an error. `test:feature` now runs `node --disable-warning=ExperimentalWarning --test …`. The output no longer has the warning, and the result is still 1 pass, exit 0.
+
+## 10. Host wrapper scripts
+The user chose shell wrappers, because the host has no Node/npm and an npm script can't start `docker run` itself.
+- `./fetcher/bin/test-feature.sh` runs `npm run test:feature` in the image: 1 pass, exit 0.
+- `fetcher/bin/test-unit.sh`, run from `/tmp`, runs `npm test`: 3 pass, exit 0. This shows that paths resolve from the script's own location.
+
+## 11. `test-feature.sh` moved to `fetcher/test/`, and `test:feature` calls it
+- `fetcher/test/test-feature.sh` now runs `node --disable-warning=ExperimentalWarning --test 'test/feature/**/*.test.js'` in the image. It no longer runs `npm run test:feature`, which would call the script again. `fetcher/bin/test-feature.sh` is removed.
+- `package.json`: `"test:feature": "test/test-feature.sh"`.
+- `./fetcher/test/test-feature.sh` gives 1 pass, exit 0. The same script run from `/tmp` gives 1 pass, exit 0.
+- `npm run test:feature` itself was not run, because this host has no npm.
