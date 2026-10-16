@@ -4,8 +4,8 @@ const {
   AirQualityIngestion,
   UnknownCityError,
   InvalidDateToError,
-} = require('../src/openaq/AirQualityIngestion');
-const { MockApiClient } = require('./MockApiClient');
+} = require('../../src/openaq/AirQualityIngestion');
+const { MockApiClient } = require('../MockApiClient');
 
 const expected = {
   period: { from: '2026-10-13T00:00:00Z', to: '2026-10-14T00:00:00Z' },

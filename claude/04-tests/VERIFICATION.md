@@ -45,3 +45,30 @@ The file was then restored.
 - `fetcher/test/fixtures/` contains only `openaq-api/`, which holds the 11 JSON files under the same names.
 - The offline test run (`docker run --network none …`) passes 3 of 3, exit 0.
 - `node test/capture-openaq-api-fixtures.js` with no key prints `OPENAQ_API_KEY is not set` (exit 1). This shows the renamed script loads. It was not re-run against the API.
+
+## 7. `OpenAQRepository` test (in-memory SQLite, no MySQL)
+`docker run --rm --network none -v …/src:ro -v …/test:ro cleanair-fetcher node --test 'test/**/*.test.js'`
+```
+ok 1 - run builds the sofia report from the captured API responses
+ok 2 - run rejects an unknown city without calling the API
+ok 3 - run rejects an invalid or future date-to without calling the API
+# (node:14) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+ok 4 - saveReport inserts one air_quality row for the report city and date
+# tests 4  # pass 4  # fail 0
+```
+Exit 0. The run needs no MySQL container and no network.
+
+Negative check: with the expected `mean_ratio` temporarily changed to `0.39`, test 4 fails (exit 1) with the diff `+ mean_ratio: 0.38 / - mean_ratio: 0.39`. The value was then restored.
+
+`git status --short`: `?? fetcher/test/OpenAQRepository.test.js`, `?? fetcher/test/SqliteConnection.js`, plus the `claude/04-tests/` doc updates. `fetcher/src/` is unchanged.
+
+## 8. Tests split into `test/unit/` and `test/feature/`
+`AirQualityIngestion.test.js` moved to `test/unit/` (`git mv`). `OpenAQRepository.test.js` moved to `test/feature/`. In both files the `require` paths now point one level up (`../../src/…`, `../MockApiClient`, `../SqliteConnection`).
+
+| glob | result |
+|---|---|
+| `'test/**/*.test.js'` | 4 pass, 0 fail, exit 0 |
+| `'test/unit/**/*.test.js'` | 3 pass, exit 0 |
+| `'test/feature/**/*.test.js'` | 1 pass, exit 0 |
+
+All three runs used `--network none`. `fetcher/src/` is unchanged.

@@ -100,3 +100,76 @@ Verification:
 - The offline test run (`docker run --network none … node --test 'test/**/*.test.js'`) passes 3/3.
 - `grep -rn "capture-fixtures"` finds nothing outside the "issues found" history.
 - The capture script is not re-run, because that would make real API calls. `node test/capture-openaq-api-fixtures.js` without a key prints `OPENAQ_API_KEY is not set`, which confirms that it loads.
+
+## Revision: unit test for `OpenAQRepository` with an in-memory `node:sqlite` database
+
+### Context
+The user wants a test for `fetcher/src/db/OpenAQRepository.js`. It calls `saveReport` with a report built in the test, then asserts **exactly one** row in `air_quality`, using an in-memory database instead of the MySQL container. There is no real in-memory MySQL for Node, so the test uses `node:sqlite` (`DatabaseSync(':memory:')`). It is built into Node 22: the image runs v22.23.3, where `node:sqlite` needs no flag. No new dependencies.
+
+### No changes to `OpenAQRepository`
+- The constructor already takes the connection as a parameter: `new OpenAQRepository(connection, pollutants)`.
+- The repository uses only `connection.query(sql, [rows])` and `connection.end()`.
+- The test builds the repository directly and never calls `connect()`, so `mysql2` isn't used.
+
+### `fetcher/test/SqliteConnection.js` (new)
+A minimal stand-in for a mysql2 connection, backed by `DatabaseSync(':memory:')`:
+- The constructor creates `air_quality` as the V2 + V3 schema in SQLite DDL:
+  - `id INTEGER PRIMARY KEY AUTOINCREMENT`, `city`, `target_date`, `mean_ratio`, `max_ratio`;
+  - `pm25_/pm10_/co_` `average`, `unit` and `ratio`;
+  - `created_at DEFAULT CURRENT_TIMESTAMP`, `UNIQUE (city, target_date)`.
+- `query(sql, [rows])` turns the repository's MySQL SQL into SQLite SQL. It binds parameters rather than formatting strings, so there are no escaping differences:
+  - `VALUES ?` becomes `VALUES (?, …), (?, …)`, one group per row, and the flattened row values are bound;
+  - `ON DUPLICATE KEY UPDATE` becomes `ON CONFLICT (city, target_date) DO UPDATE SET`;
+  - `VALUES(col)` becomes `excluded.col`.
+- `all(sql)` is a helper for the assertions (`SELECT * FROM air_quality`).
+- `end()` closes the database.
+
+### `fetcher/test/OpenAQRepository.test.js` (new)
+- A setup report for one city, sofia, with `period.to = '2026-10-14T00:00:00Z'` and pm25 11.1 / 0.74, pm10 12.4 / 0.28, co 519.8 / 0.13 (the same values as the captured fixture report).
+- `await repository.saveReport(report)` returns `1`.
+- `SELECT * FROM air_quality` returns exactly one row. The test `deepEqual`s it, without `created_at`, against:
+  - `id: 1`, `city: 'sofia'`, `target_date: '2026-10-14'`;
+  - `mean_ratio: 0.38`, which is round((0.74+0.28+0.13)/3, 2);
+  - `max_ratio: 0.74`;
+  - `pm25_average: 11.1`, `pm25_unit: 'µg/m³'`, `pm25_ratio: 0.74`, and the same for pm10 and co.
+- `created_at` matches `/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/`.
+- `after`: `repository.close()`.
+
+### Limits
+This checks the repository's column list, values, `target_date`, and mean/max ratio logic. It does not check MySQL itself: DECIMAL rounding, or the exact `ON DUPLICATE KEY` behaviour. Those are still covered by the container runs in `03-backfill`.
+
+### Docs
+- `claude/04-tests/PLAN.md`: append this revision.
+- `DEVELOPMENT.md`: add the repository test, the SQLite adapter, and its limits.
+- `VERIFICATION.md`: add the results.
+
+### Verification
+- `docker run --rm --network none -v …/src:ro -v …/test:ro cleanair-fetcher node --test 'test/**/*.test.js'` passes 4 of 4, with no MySQL. Any `ExperimentalWarning` for sqlite is noted.
+- Negative check: temporarily change one expected value, for example `mean_ratio`. The test fails with a diff, then the value is restored.
+- `git status`: `fetcher/src/` is unchanged.
+
+## Revision: split the tests into `test/unit/` and `test/feature/`
+The user asked for two moves:
+- `fetcher/test/AirQualityIngestion.test.js` → `fetcher/test/unit/AirQualityIngestion.test.js`
+- `fetcher/test/OpenAQRepository.test.js` → `fetcher/test/feature/OpenAQRepository.test.js`
+
+Both are moved with `git mv`. `AirQualityIngestion.test.js` is committed in `edbb151`. `OpenAQRepository.test.js` is untracked, so it gets a plain `mv`.
+
+The helpers stay in `fetcher/test/`: `MockApiClient.js`, `fixtureName.js`, `SqliteConnection.js`, `capture-openaq-api-fixtures.js` and `fixtures/openaq-api/`.
+
+`require` paths in the moved files go one level deeper:
+- `'../src/…'` → `'../../src/…'`
+- `'./MockApiClient'` → `'../MockApiClient'`
+- `'./SqliteConnection'` → `'../SqliteConnection'`
+
+`package.json` doesn't change: `'test/**/*.test.js'` already matches the subdirectories.
+
+Docs:
+- `DEVELOPMENT.md`: update the test paths in the layout table and add the single-folder run commands (`node --test 'test/unit/**/*.test.js'`, `'test/feature/**/*.test.js'`).
+- `VERIFICATION.md`: add the result.
+- `PLAN.md`: append this revision.
+
+Verification:
+- The full offline run (`docker run --network none … node --test 'test/**/*.test.js'`) passes 4 of 4.
+- `test/unit` alone passes 3 tests and `test/feature` alone passes 1.
+- `git status` shows the renames, with `fetcher/src/` unchanged.

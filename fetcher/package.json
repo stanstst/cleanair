@@ -6,7 +6,7 @@
   "main": "src/job.js",
   "scripts": {
     "start": "node src/job.js",
-    "test": "node --test 'test/**/*.test.js'"
+    "test": "node --test 'test/unit/**/*.test.js'"
   },
   "dependencies": {
     "prom-client": "^15.1.3",
