@@ -24,3 +24,19 @@
    - With MySQL stopped, it printed `getaddrinfo ENOTFOUND mysql` and exited 1. MySQL was restarted afterwards.
 6. **Metrics.** `curl -s localhost:9091/metrics | grep -ci archiv` returned 0.
 7. **`git status --short`.** Only `docker-compose.yml`, `README.md`, `archiver/` and `claude/05-archive/` changed. `fetcher/` is unchanged.
+
+## Revision: dufs file server (2026-10-17)
+1. `docker compose up -d fileserver archiver` started both services. `test-feature.sh` gave **8 pass, 0 fail**, with the tests unchanged.
+2. I inserted 3 rows: sofia and ruse on 2022-01-01, and sofia on 2022-01-02.
+   ```
+   Archived 2 records to http://fileserver:5000/2022-01-01-archive.csv
+   Archived 1 records to http://fileserver:5000/2022-01-02-archive.csv
+   Archive finished in 0.111s (cutoff=2023-10-17, files=2, records=3, success=true)
+   exit=0
+   ```
+   - `ls .tmp/archive-files/` shows both CSVs, owned by the host user.
+   - `curl localhost:5000/2022-01-01-archive.csv` returns the header and 2 rows, with `µg/m³` intact.
+   - 0 old rows are left in MySQL.
+3. Anonymous access: `GET /` returns 200, and `PUT /x.csv` returns 401.
+4. Re-inserting the same rows and re-running overwrote both files and exited 0.
+5. With `fileserver` stopped, the job printed `fetch failed`, exited 1, and kept all 3 rows. After `fileserver` was started again, the next run archived them.

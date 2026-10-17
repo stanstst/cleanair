@@ -3,3 +3,5 @@
 openaqtest.php
 
 .env
+
+.tmp/

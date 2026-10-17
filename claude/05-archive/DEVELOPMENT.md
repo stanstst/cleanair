@@ -50,3 +50,17 @@ The files live only in the container's filesystem. They are lost when the contai
 - `test/SqliteConnection.js`, an in-memory `node:sqlite` with the `air_quality` schema, which returns results in the same shape as mysql2;
 - a temp dir for `FileUploader`;
 - a fixed `now`.
+
+## Revision: upload to the dufs file server
+- `src/archive/DufsFileUploader.js` (new) has the same `upload({ fileName, content })` interface as `FileUploader`.
+  - It sends `PUT ${ARCHIVE_URL}/<fileName>` with Basic auth and returns the file URL.
+  - A response that is not 2xx throws `upload of <file> failed: <status> <text>`.
+- `job.js` uses `DufsFileUploader` by default (`createUploader`).
+  - A missing `ARCHIVE_URL` exits 1 before the DB is touched.
+  - `FileUploader` (local dir) is unchanged, and the feature tests still inject it.
+- The compose `fileserver` service runs `sigoden/dufs:v0.47.0`:
+  - It serves `./.tmp/archive-files` (host) as `/data` on `127.0.0.1:5000`.
+  - Anonymous users can read. Only `${ARCHIVE_USER}:${ARCHIVE_PASSWORD}` (default `archiver`/`archiver`) can write.
+  - `--allow-delete` is needed so a re-run can overwrite an existing file.
+- The `archiver` env vars are `ARCHIVE_URL=http://fileserver:5000`, `ARCHIVE_USER` and `ARCHIVE_PASSWORD`.
+- Re-run safety still holds. If the fileserver is down, the job exits 1 (`fetch failed`) and no rows are deleted. Running it again later archives them.

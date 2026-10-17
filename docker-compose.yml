@@ -33,11 +33,32 @@ services:
       DB_NAME: ${MYSQL_DATABASE}
       DB_USER: ${MYSQL_USER}
       DB_PASSWORD: ${MYSQL_PASSWORD}
+      ARCHIVE_URL: http://fileserver:5000
+      ARCHIVE_USER: ${ARCHIVE_USER:-archiver}
+      ARCHIVE_PASSWORD: ${ARCHIVE_PASSWORD:-archiver}
     volumes:
       - ./archiver/src:/archiver/src:ro
     depends_on:
       migrate:
         condition: service_completed_successfully
+      fileserver:
+        condition: service_started
+    restart: unless-stopped
+
+  fileserver:
+    image: sigoden/dufs:v0.47.0
+    command:
+      - /data
+      - --allow-upload
+      - --allow-delete
+      - -a
+      - ${ARCHIVE_USER:-archiver}:${ARCHIVE_PASSWORD:-archiver}@/:rw
+      - -a
+      - "@/"
+    volumes:
+      - ./.tmp/archive-files:/data
+    ports:
+      - "127.0.0.1:5000:5000"
     restart: unless-stopped
 
   mysql:

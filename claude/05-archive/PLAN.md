@@ -130,3 +130,69 @@ docker compose exec archiver ls /tmp/archive
 5. `--months x` should exit 2. With MySQL stopped, the job should exit 1.
 6. `curl -s localhost:9091/metrics` should show no archiver metrics.
 7. `git status --short` should show only `archiver/`, `docker-compose.yml`, `README.md` and `claude/05-archive/`.
+
+## Revision: `FileUploader` uploads to a dufs file server
+Files in `/tmp/archive` can't be seen from outside the container, and they are lost when it is recreated. The user wants the archives uploaded to a free file server where they can be browsed.
+
+Filebrowser was the first choice, but it was archived on 2026-09-01 and gets no more fixes, so the user chose **[dufs](https://github.com/sigoden/dufs)** instead.
+
+How it fits:
+- The files live in the dufs container under `/data`, which is bind-mounted to `./.tmp/archive-files` on the host. The archiver keeps no copy.
+- Anyone on localhost can view the files. Only the archiver account can write.
+
+### `docker-compose.yml`: new `fileserver` service
+```yaml
+fileserver:
+  image: sigoden/dufs:v0.47.0
+  command: ["/data", "--allow-upload", "--allow-delete",
+            "-a", "${ARCHIVE_USER}:${ARCHIVE_PASSWORD}@/:rw", "-a", "@/"]
+  volumes:
+    - ./.tmp/archive-files:/data
+  ports:
+    - "127.0.0.1:5000:5000"
+  restart: unless-stopped
+```
+- `--allow-delete` lets a re-run overwrite an existing file. dufs treats overwriting as a delete, and only the `rw` account gets it.
+- `-a @/` gives anonymous users read access.
+
+The `archiver` service also changes:
+- New env vars: `ARCHIVE_URL: http://fileserver:5000`, `ARCHIVE_USER` and `ARCHIVE_PASSWORD`.
+- It adds `depends_on: fileserver`.
+
+### `.env.example`, `.gitignore`
+- `.env.example` gets `ARCHIVE_USER=archiver` and `ARCHIVE_PASSWORD=archiver`. The same lines go into the local `.env`, after asking the user.
+- `.gitignore` gets `.tmp/`.
+
+### `archiver/src/archive/DufsFileUploader.js` (new)
+`FileUploader.js` stays unchanged. The new class has the same `upload({ fileName, content })` interface.
+
+`constructor({ baseUrl, user, password })`, then `upload`:
+- sends `fetch(\`${baseUrl}/${encodeURIComponent(fileName)}\`, { method: 'PUT', headers: { Authorization: 'Basic …', 'Content-Type': 'text/csv; charset=utf-8' }, body: content })`;
+- throws `upload of <fileName> failed: <status> <statusText>` when the response is not ok;
+- returns the file URL.
+
+There is no new npm dependency, because Node 22 has `fetch` built in.
+
+### `archiver/src/job.js`
+- The default `createUploader` changes to `new DufsFileUploader({ baseUrl: env.ARCHIVE_URL, user: env.ARCHIVE_USER, password: env.ARCHIVE_PASSWORD })`.
+- A missing `ARCHIVE_URL` throws `ARCHIVE_URL is not set`, which exits 1. This check runs before the DB connection.
+- The log line is unchanged: `Archived N records to <url>`. The delete still runs only after the upload succeeds.
+
+### Tests
+No changes. `feature/job.test.js` already injects `createUploader: () => new FileUploader({ dir })`, so it keeps testing the job with the existing `FileUploader`. `DufsFileUploader` is checked by the manual steps below.
+
+### Docs
+- `README.md`: the archiving section explains how to view the files at `http://localhost:5000` and that they are stored in `./.tmp/archive-files`.
+- In `claude/05-archive/`:
+  - `PLAN.md`: this revision.
+  - `DEVELOPMENT.md`: the fileserver, the env vars and how to re-run safely.
+  - `VERIFICATION.md`: the results below.
+
+### Verification
+1. `docker compose up -d --build fileserver archiver`, then `test-feature.sh` passes.
+2. Insert old rows and run the job. It should log `Archived … http://fileserver:5000/2022-01-01-archive.csv`.
+   - `ls .tmp/archive-files/` on the host shows the CSVs.
+   - `http://localhost:5000` lists them, and downloading one works without a login.
+3. Without credentials, `curl -T x.csv localhost:5000/x.csv` should return 401.
+4. Re-run after re-inserting the same old rows. The file should be overwritten, and the exit code should be 0.
+5. With `fileserver` stopped, the job should exit 1 and keep the rows in MySQL.

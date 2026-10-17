@@ -1,7 +1,7 @@
 const { parseArgs } = require('node:util');
 const { AirQualityRepository } = require('./db/AirQualityRepository');
 const { ArchiveCreator } = require('./archive/ArchiveCreator');
-const { FileUploader } = require('./archive/FileUploader');
+const { DufsFileUploader } = require('./archive/DufsFileUploader');
 
 class UsageError extends Error {
   constructor(message) {
@@ -49,7 +49,10 @@ async function main({
       password: env.DB_PASSWORD,
       database: env.DB_NAME,
     }),
-  createUploader = () => new FileUploader(),
+  createUploader = () => {
+    if (!env.ARCHIVE_URL) throw new Error('ARCHIVE_URL is not set');
+    return new DufsFileUploader({ baseUrl: env.ARCHIVE_URL, user: env.ARCHIVE_USER, password: env.ARCHIVE_PASSWORD });
+  },
 } = {}) {
   const start = process.hrtime.bigint();
   let success = true;
