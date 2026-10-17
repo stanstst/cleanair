@@ -45,6 +45,24 @@ services:
         condition: service_started
     restart: unless-stopped
 
+  dummy-dev-populator:
+    build: ./dummy-dev-populator
+    # Keep the container alive so the job can be run on demand:
+    #   docker compose exec dummy-dev-populator node src/job.js --date-from DD-MM-YYYY
+    command: ["sleep", "infinity"]
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${MYSQL_DATABASE}
+      DB_USER: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - ./dummy-dev-populator/src:/dummy-dev-populator/src:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
   fileserver:
     image: sigoden/dufs:v0.47.0
     command:

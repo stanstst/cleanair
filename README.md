@@ -151,3 +151,13 @@ docker compose exec archiver node src/job.js --months 12
 To view the archives, open http://localhost:5000. No login is needed to view or download them. The files are stored on the host in `./.tmp/archive-files`, and only the `ARCHIVE_USER` / `ARCHIVE_PASSWORD` account (default `archiver`/`archiver`, set in `.env`) can upload.
 
 Feature tests (no network): `archiver/test/test-feature.sh`
+
+### Populating dummy data
+
+The `dummy-dev-populator` service fills `air_quality` with random records for `sofia`, `ruse` and `varna`: one row per city for every day from `--date-from` (`DD-MM-YYYY`) to today. It makes no API calls. Rows that already exist for a `(city, target_date)` are kept as they are, so re-running it is safe.
+
+```bash
+docker compose up -d --build dummy-dev-populator
+
+docker compose exec dummy-dev-populator node src/job.js --date-from 01-10-2026
+```
