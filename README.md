@@ -115,3 +115,24 @@ required_pollutants_any_of: [pm25, pm10]
 
 - **Station placement affects results.** A city with a single traffic-side station will look worse than one with a single park-side station.
 - **Short periods are noisy.** A ranking over one or two days can be dominated by a single weather event.
+
+---
+
+## Running the jobs
+
+The fetcher image has two entry points:
+- `src/job.js` fetches the last 24h, or the day ending at `--date-to`, and pushes metrics to Pushgateway.
+- `src/job-backfill.js` fills a date range (`DD-MM-YYYY`, inclusive). It doesn't push metrics.
+
+### Locally (docker compose)
+
+Both scripts run in the `fetcher` container:
+
+```bash
+docker compose up -d
+
+docker compose exec fetcher node src/job.js
+docker compose exec fetcher node src/job.js --city sofia --date-to 2026-10-14
+
+docker compose exec fetcher node src/job-backfill.js --start-date 11-10-2026 --end-date 15-10-2026
+```
