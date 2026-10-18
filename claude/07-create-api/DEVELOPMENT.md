@@ -40,6 +40,8 @@ LIMIT 1
 - If two cities tie on both averages, which one MySQL returns is undefined. The `ORDER BY` is kept exactly as specified.
 - Both dates are inclusive. The example SQL in the requirements uses strict `>`/`<`, but inclusive ranges were chosen to match the backfill job.
 
+Every response from this route, errors included, sends `Content-Type: application/json; charset=utf-8`. The handler sets it first, and Express adds the charset.
+
 Response `200`, the record exactly as the query returns it:
 ```json
 { "city": "ruse", "period_max_polution": 2.219375, "period_mean_polution": 1.492708 }

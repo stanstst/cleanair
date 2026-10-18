@@ -15,6 +15,7 @@ function createApp({ repository }) {
   app.use(express.static(path.join(__dirname, '../public')));
 
   app.get('/cleanest-city', async (req, res) => {
+    res.set('Content-Type', 'application/json');
     const dateFrom = req.query['date-from'];
     const dateTo = req.query['date-to'];
 

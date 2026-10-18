@@ -36,16 +36,17 @@ async function startApi(t, records = RECORDS) {
   return async (path) => {
     const response = await fetch(`${base}${path}`);
     const type = response.headers.get('content-type') ?? '';
-    return { status: response.status, body: type.includes('json') ? await response.json() : await response.text() };
+    return { status: response.status, type, body: type.includes('json') ? await response.json() : await response.text() };
   };
 }
 
 test('returns the city with the lowest period max, using the period mean as a tie-breaker', async (t) => {
   const get = await startApi(t);
 
-  const { status, body } = await get('/cleanest-city?date-from=2026-10-01&date-to=2026-10-02');
+  const { status, type, body } = await get('/cleanest-city?date-from=2026-10-01&date-to=2026-10-02');
 
   assert.equal(status, 200);
+  assert.equal(type, 'application/json; charset=utf-8');
   assert.deepEqual(body, { city: 'varna', period_max_polution: 1.25, period_mean_polution: 0.5 });
 });
 
