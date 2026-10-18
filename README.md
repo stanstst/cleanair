@@ -2,13 +2,13 @@
 
 A web service with a minimal UI that answers one question: **which Bulgarian city had the cleanest air over a chosen period?**
 
-The answer is based on real public measurements of three pollutants: **PM2.5, PM10 and NO₂**.
+The answer is based on real public measurements of three pollutants: **PM2.5, PM10 and CO**.
 
 ---
 
 ## How "cleanest air" is determined
 
-The three pollutants can't be compared directly. For example, 20 µg/m³ of PM2.5 is far more harmful than 20 µg/m³ of NO₂. So the ranking works in three steps: aggregate, normalize, combine.
+The three pollutants can't be compared directly. For example, 20 µg/m³ of PM2.5 is far more harmful than 20 µg/m³ of CO. So the ranking works in three steps: aggregate, normalize, combine.
 
 ### 1. Aggregate measurements for the selected period
 
@@ -30,28 +30,30 @@ ratio = measured_value / reference_limit
 | `= 1` | At the limit |
 | `> 1` | Exceeds the limit |
 
-**Reference limits** (WHO Air Quality Guidelines 2021, 24-hour values, µg/m³):
+**Reference limits** 
 
 | Pollutant | Limit |
-|---|---|
-| PM2.5 | 15 |
-| PM10 | 45 |
-| NO₂ | 25 |
-
-The limits are configurable in `config` (see below), so EU limits or another standard can be used instead.
+|-----------|-------|
+| PM2.5     | 15    |
+| PM10      | 45    |
+| CO        | 4000  |
 
 ### 3. Combine the ratios into a city score
 
-Each city gets two scores:
+Each city gets two scores. Both are calculated per day, then averaged over the selected period:
 
 - **Max ratio (primary):** the ratio of the worst pollutant.
   ```
-  max_ratio = max(ratio_PM25, ratio_PM10, ratio_NO2)
+  daily max_ratio  = max(ratio_PM25, ratio_PM10, ratio_CO)   (available pollutants only)
+  period max_ratio = average of the daily max_ratio values
   ```
 - **Mean ratio (tie-breaker):** the average of the ratios of the available pollutants.
   ```
-  mean_ratio = sum(available ratios) / number of available pollutants
+  daily mean_ratio  = sum(available ratios) / number of available pollutants
+  period mean_ratio = average of the daily mean_ratio values
   ```
+
+Averaging the daily max values keeps a bad day for any pollutant in the score, even when a different pollutant is the worst on other days.
 
 **Ranking rule:**
 
@@ -65,13 +67,11 @@ Each city gets two scores:
 
 ## Data quality rules
 
-| Rule | Behaviour |
-|---|---|
+| Rule | Behaviour                                                                                                                                                      |
+|---|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Missing pollutant** | Not counted. It is **never treated as 0**, because that would make the city look cleaner than it is. Scores are calculated from the available pollutants only. |
-| **Minimum required data** | A city is ranked only if it has data for **PM10 or PM2.5**. Cities without either are excluded from the ranking. |
-| **Partial coverage** | A city that is missing some pollutants is still ranked, but it is flagged in the response and the UI (for example, "based on 2 of 3 pollutants"). |
-| **Data coverage threshold** | A day counts only if at least **75%** of its hourly values are valid. A pollutant counts for the period only if at least **75%** of its days are valid. |
-| **Invalid values** | Negative values and missing values are discarded before aggregation. |
+| **Minimum required data** | A city is ranked only if it has data for at least one pollutant.                                                                                               |
+| **Invalid values** | Negative values and missing values are discarded before aggregation.                                                                                           |
 
 ---
 
@@ -79,36 +79,32 @@ Each city gets two scores:
 
 Selected period: 1–31 January
 
-| City | PM2.5 | PM10 | NO₂ | Max ratio | Mean ratio |
-|---|---|---|---|---|---|
-| Varna | 1.2 | 0.9 | 0.8 | **1.2** | 0.97 |
-| Burgas | 1.2 | 1.1 | 0.4 | **1.2** | 0.90 |
-| Sofia | 2.1 | 1.6 | 1.4 | 2.1 | 1.70 |
-| Smolyan | — | 0.7 | — | 0.7 | 0.70 ⚠️ |
+| City | PM2.5 | PM10 | CO   | Max ratio | Mean ratio |
+|---|---|---|-----|---|----------|
+| Varna | 1.2 | 0.9 | 0.8 | **1.2** | 0.97     |
+| Burgas | 1.2 | 1.1 | 0.4 | **1.2** | 0.90     |
+| Sofia | 2.1 | 1.6 | 1.4 | 2.1 | 1.70     |
+| Smolyan | — | 0.7 | —   | 0.7 | 0.70    |
 
 **Result:**
 
-1. **Smolyan:** max ratio 0.7. ⚠️ Based on 1 of 3 pollutants.
+1. **Smolyan:** max ratio 0.7.
 2. **Burgas:** max ratio 1.2. Wins the tie with Varna because its mean ratio is lower (0.90 vs 0.97).
 3. **Varna:** max ratio 1.2.
 4. **Sofia:** max ratio 2.1.
 
-**Smolyan is the city with the cleanest air**, but the result is flagged because it is based on PM10 only.
-
 ---
 
 ## Configuration
+The reference limits are set in `fetcher/src/openaq/config.js`, in `recommendedGuideline` (µg/m³) for each pollutant:
 
-```yaml
-reference_limits:      # µg/m³
-  pm25: 15
-  pm10: 45
-  no2: 25
-
-coverage_threshold: 0.75
-required_pollutants_any_of: [pm25, pm10]
-```
-
+ ```js
+ POLLUTANTS: {
+   pm25: { parameterId: 2, unit: 'µg/m³', recommendedGuideline: 15 },
+   pm10: { parameterId: 1, unit: 'µg/m³', recommendedGuideline: 45 },
+   co: { parameterId: 4, unit: 'µg/m³', recommendedGuideline: 4000 },
+ }
+ ```
 ---
 
 ## Known limitations
