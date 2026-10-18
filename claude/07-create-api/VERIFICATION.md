@@ -59,3 +59,15 @@
    - `date-from` after `date-to` returned 400 with `date-from must not be after date-to`.
    - `2000-01-01..2000-02-01` returned 404.
 4. **UI.** `GET /` returns 200, and the page has one `Cleanest City` row template, `… with ${body.period_max_polution} and ${body.period_mean_polution}`. The page has still **not** been clicked through in a browser.
+
+## Revision: calendar position (2026-10-18)
+- **Problem:** clicking a date input opened the calendar far to the right of the input and added a horizontal scrollbar.
+- **Cause:** the page set `max-width: 640px` on `<body>`. flatpickr 4.6.13 checks `left + calendarWidth > document.body.offsetWidth` (`flatpickr.js:2114`). With the narrow body this check passes, so it positions the calendar with `right:`, which is measured from the window's right edge, not the body's.
+- **Fix:** the width and margin moved to a `<main>` wrapper, and `<body>` now spans the full window.
+- **Check:** I used headless Chrome (1600×900) through the DevTools protocol, clicked each input, and measured the calendar position:
+  | Layout | Input `date-from` left | Calendar left | Input `date-to` left | Calendar left / right |
+  |---|---|---|---|---|
+  | old (`body` 640px) | 480 | 1321 | 713 | 1554 / **1862** (window is 1600 wide) |
+  | fixed (`main` 640px) | 480 | 480 | 713 | 713 / 1021 |
+
+  With the fix, each calendar opens 2px below its input, left-aligned with it, and inside the window. `api/test/test-feature.sh` still gives 6 pass, 0 fail.

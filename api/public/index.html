@@ -6,7 +6,8 @@
   <title>Clean Air Finder</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 48px auto; padding: 0 16px; color: #1f2933; }
+    body { margin: 0; font-family: system-ui, sans-serif; color: #1f2933; }
+    main { max-width: 640px; margin: 48px auto; padding: 0 16px; }
     h1 { font-size: 1.5rem; }
     form { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin-bottom: 24px; }
     label { display: flex; flex-direction: column; font-size: 0.85rem; gap: 4px; }
@@ -17,13 +18,15 @@
   </style>
 </head>
 <body>
-  <h1>Clean Air Finder</h1>
-  <form id="search">
-    <label>Date from <input id="date-from" required></label>
-    <label>Date to <input id="date-to" required></label>
-    <button type="submit">Find</button>
-  </form>
-  <div id="result"></div>
+  <main>
+    <h1>Clean Air Finder</h1>
+    <form id="search">
+      <label>Date from <input id="date-from" required></label>
+      <label>Date to <input id="date-to" required></label>
+      <button type="submit">Find</button>
+    </form>
+    <div id="result"></div>
+  </main>
 
   <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
   <script>

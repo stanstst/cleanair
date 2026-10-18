@@ -62,6 +62,7 @@ Errors:
 - It shows one row: `Cleanest City by overall pollution load is: <city> with <period_max_polution> and <period_mean_polution>`. The values are shown as the API returns them.
 - An API error message is shown in red.
 - flatpickr loads from the CDN, so the browser needs internet access.
+- The 640px page width is set on `<main>`, not on `<body>`. flatpickr compares the input's position, measured from the window's left edge, against `document.body.offsetWidth`. With a narrow body it decides the input is at the right edge and opens the calendar near the window's right edge, off screen.
 
 ## Tests
 - `api/test/test-feature.sh` runs `test/feature/**/*.test.js` in the `cleanair-api` image with `--network none`. The image must be built first (`docker compose build api`).
