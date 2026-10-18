@@ -161,3 +161,21 @@ docker compose up -d --build dummy-dev-populator
 
 docker compose exec dummy-dev-populator node src/job.js --date-from 01-10-2026
 ```
+
+### API and UI
+
+The `api` service serves `GET /cleanest-city` and a web page with a date picker. For each city it averages the daily `max_ratio` and `mean_ratio` over the selected period (both dates inclusive, `YYYY-MM-DD`). It returns the city with the lowest average max, using the lower average mean to break a tie.
+
+```bash
+docker compose up -d --build api
+
+curl 'http://localhost:8080/cleanest-city?date-from=2025-10-06&date-to=2026-10-06'
+```
+
+```json
+{ "city": "ruse", "period_max_polution": 2.219375, "period_mean_polution": 1.492708 }
+```
+
+Invalid or missing dates return `400`, and a period with no data returns `404`. The UI is at http://localhost:8080.
+
+Feature tests (no network): `api/test/test-feature.sh`

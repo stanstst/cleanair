@@ -1,0 +1,14 @@
+{
+  "name": "cleanair-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "HTTP API and UI for the cleanest city",
+  "main": "src/server.js",
+  "scripts": {
+    "test:feature": "test/test-feature.sh"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "mysql2": "^3.11.0"
+  }
+}

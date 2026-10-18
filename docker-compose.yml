@@ -63,6 +63,25 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
 
+  api:
+    build: ./api
+    environment:
+      PORT: 8080
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${MYSQL_DATABASE}
+      DB_USER: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./api/src:/api/src:ro
+      - ./api/public:/api/public:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
   fileserver:
     image: sigoden/dufs:v0.47.0
     command:
