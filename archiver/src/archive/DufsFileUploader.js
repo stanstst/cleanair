@@ -14,7 +14,7 @@ class DufsFileUploader {
     if (!response.ok) {
       throw new Error(`upload of ${fileName} failed: ${response.status} ${response.statusText}`);
     }
-    return url;
+    return fileName;
   }
 }
 
