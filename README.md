@@ -1,12 +1,10 @@
 # Clean Air Finder
 
-A web service with a minimal UI that answers one question: **which Bulgarian city had the cleanest air over a chosen period?**
-
 The answer is based on real public measurements of three pollutants: **PM2.5, PM10 and CO**.
 
 ---
 
-## How "cleanest air" is determined
+## Business domain assumptions
 
 The three pollutants can't be compared directly. For example, 20 µg/m³ of PM2.5 is far more harmful than 20 µg/m³ of CO. So the ranking works in three steps: aggregate, normalize, combine.
 
@@ -109,47 +107,43 @@ The reference limits are set in `fetcher/src/openaq/config.js`, in `recommendedG
 
 ---
 
-## Running the jobs
+## Running the jobs and processes
 
-The fetcher image has two entry points:
-- `src/job.js` fetches the last 24h, or the day ending at `--date-to`, and pushes metrics to Pushgateway.
-- `src/job-backfill.js` fills a date range (`DD-MM-YYYY`, inclusive). It doesn't push metrics.
-
-### Locally (docker compose)
-
-Both scripts run in the `fetcher` container:
+### Start all the containers
 
 ```bash
 docker compose up -d
+```
 
+### Run the `fetcher` process:
+Fetches the last 24h, or the day ending at `--date-to`
+
+```bash
 docker compose exec fetcher node src/job.js
 docker compose exec fetcher node src/job.js --city sofia --date-to 2026-10-14
+```
+### Run the `backfill` process:
+Fills a date range (`DD-MM-YYYY`, inclusive).
+```bash
 
 docker compose exec fetcher node src/job-backfill.js --start-date 11-10-2026 --end-date 15-10-2026
 ```
 
-### Archiving old records
+### Archiving old records process
 
 The `archiver` service moves `air_quality` rows whose `target_date` is older than `--months` (default 36) into CSV files and deletes them from the table. It writes one file per target date, `<target_date>-archive.csv`, and uploads it to the `fileserver` service ([dufs](https://github.com/sigoden/dufs)).
 
 ```bash
-docker compose up -d --build fileserver archiver
-
 docker compose exec archiver node src/job.js
 docker compose exec archiver node src/job.js --months 12
 ```
-
 To view the archives, open http://localhost:5000. No login is needed to view or download them. The files are stored on the host in `./.tmp/archive-files`, and only the `ARCHIVE_USER` / `ARCHIVE_PASSWORD` account (default `archiver`/`archiver`, set in `.env`) can upload.
-
-Feature tests (no network): `archiver/test/test-feature.sh`
 
 ### Populating dummy data
 
 The `dummy-dev-populator` service fills `air_quality` with random records for `sofia`, `ruse` and `varna`: one row per city for every day from `--date-from` (`DD-MM-YYYY`) to today. It makes no API calls. Rows that already exist for a `(city, target_date)` are kept as they are, so re-running it is safe.
 
 ```bash
-docker compose up -d --build dummy-dev-populator
-
 docker compose exec dummy-dev-populator node src/job.js --date-from 01-10-2026
 ```
 
@@ -158,7 +152,6 @@ docker compose exec dummy-dev-populator node src/job.js --date-from 01-10-2026
 The `api` service serves `GET /cleanest-city` and a web page with a date picker. For each city it averages the daily `max_ratio` and `mean_ratio` over the selected period (both dates inclusive, `YYYY-MM-DD`). It returns the city with the lowest average max, using the lower average mean to break a tie.
 
 ```bash
-docker compose up -d --build api
 
 curl 'http://localhost:8080/cleanest-city?date-from=2025-10-06&date-to=2026-10-06'
 ```
@@ -185,3 +178,17 @@ curl 'http://localhost:8080/cleanest-city?date-from=2025-10-06&date-to=2026-10-0
 * Archiver last status
 ![Screenshot From 2026-10-19 15-19-36.png](docs/screenshots/Screenshot%20From%202026-10-19%2015-19-36.png)
 
+## Production Deployment Guidelines
+
+| Service             | Kubernetes workload                                      |
+|---------------------|----------------------------------------------------------|
+| `api`               | Deployment + Service                                     |
+| `fetcher`           | CronJob (`job.js` as entry point)                        |
+| `fetcher-backfill`  | Job                                                      |
+| `archiver`          | CronJob                                                  |
+| `migrate` (flyway)  | Job (Helm pre-install/pre-upgrade hook or initContainer) |
+| `mysql`             | StatefulSet + PVC + headless Service                     |
+| `fileserver` (dufs) | StatefulSet (1 replica) + PVC                            |
+| `pushgateway`       | Deployment (1 replica) + Service                         |
+| `prometheus`        | StatefulSet + PVC                                        |
+| `grafana`           | Deployment (1 replica)                                   |
