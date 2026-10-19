@@ -169,7 +169,16 @@ curl 'http://localhost:8080/cleanest-city?date-from=2025-10-06&date-to=2026-10-0
 
 ## Grafana URL http://localhost:3000/d/cleanair-job
 
-* Last duration
-* Last run
-* Last status
-* API calls (last run)
+* Fetcher last duration
+* Fetcher last run
+* Fetcher Last status
+* Fetcher API calls (last run)
+
+* API Endpoint cleanest-city requests per minute
+* API Endpoint cleanest-city average response time
+* API Endpoint cleanest-city failed requests per hour
+* API Endpoint cleanest-city last failed request
+
+* Archiver last run
+* Archiver last status
+

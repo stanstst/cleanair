@@ -2,7 +2,7 @@
   "uid": "cleanair-job",
   "title": "CleanAir Job",
   "schemaVersion": 39,
-  "version": 5,
+  "version": 6,
   "refresh": "5s",
   "time": {
     "from": "now-30m",
@@ -15,7 +15,7 @@
     {
       "id": 1,
       "type": "stat",
-      "title": "Last duration",
+      "title": "Fetcher last duration",
       "gridPos": {
         "x": 0,
         "y": 0,
@@ -55,7 +55,7 @@
     {
       "id": 2,
       "type": "stat",
-      "title": "Last run",
+      "title": "Fetcher last run",
       "gridPos": {
         "x": 6,
         "y": 0,
@@ -94,7 +94,7 @@
     {
       "id": 3,
       "type": "stat",
-      "title": "Last status",
+      "title": "Fetcher last status",
       "gridPos": {
         "x": 12,
         "y": 0,
@@ -160,7 +160,7 @@
     {
       "id": 5,
       "type": "stat",
-      "title": "API calls (last run)",
+      "title": "Fetcher API calls (last run)",
       "gridPos": {
         "x": 18,
         "y": 0,
@@ -200,7 +200,7 @@
     {
       "id": 6,
       "type": "timeseries",
-      "title": "cleanest-city requests per minute",
+      "title": "API Endpoint cleanest-city requests per minute",
       "gridPos": {
         "x": 0,
         "y": 5,
@@ -239,7 +239,7 @@
     {
       "id": 7,
       "type": "timeseries",
-      "title": "cleanest-city average response time",
+      "title": "API Endpoint cleanest-city average response time",
       "gridPos": {
         "x": 12,
         "y": 5,
@@ -278,7 +278,7 @@
     {
       "id": 8,
       "type": "timeseries",
-      "title": "cleanest-city failed requests per hour",
+      "title": "API Endpoint cleanest-city failed requests per hour",
       "gridPos": {
         "x": 0,
         "y": 14,
@@ -321,7 +321,7 @@
     {
       "id": 9,
       "type": "stat",
-      "title": "cleanest-city last failed request",
+      "title": "API Endpoint cleanest-city last failed request",
       "gridPos": {
         "x": 12,
         "y": 14,
