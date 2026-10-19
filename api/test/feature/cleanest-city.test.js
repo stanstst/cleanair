@@ -107,3 +107,41 @@ test('serves the UI page', async (t) => {
   assert.match(body, /flatpickr/);
   assert.match(body, /cleanest-city/);
 });
+
+test('exposes cleanest-city request count and response time metrics', async (t) => {
+  const get = await startApi(t);
+
+  await get('/cleanest-city?date-from=2026-10-01&date-to=2026-10-02');
+  await get('/cleanest-city?date-from=2020-01-01&date-to=2020-12-31');
+  await get('/cleanest-city');
+  const { status, type, body } = await get('/metrics');
+
+  assert.equal(status, 200);
+  assert.match(type, /^text\/plain/);
+  assert.match(body, /cleanair_api_cleanest_city_request_duration_seconds_count\{status="200"\} 1/);
+  assert.match(body, /cleanair_api_cleanest_city_request_duration_seconds_count\{status="404"\} 1/);
+  assert.match(body, /cleanair_api_cleanest_city_request_duration_seconds_count\{status="400"\} 1/);
+  assert.match(body, /cleanair_api_cleanest_city_request_duration_seconds_sum\{status="200"\} \d/);
+});
+
+test('records the last failed request timestamp only for 5xx responses', async (t) => {
+  t.mock.method(console, 'error', () => {});
+  const repository = { findCleanest: async () => { throw new Error('db down'); } };
+  const server = createApp({ repository }).listen(0);
+  await new Promise((resolve) => server.once('listening', resolve));
+  t.after(() => server.close());
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const lastFailure = async () => {
+    const body = await (await fetch(`${base}/metrics`)).text();
+    return Number(body.match(/^cleanair_api_cleanest_city_last_failure_timestamp_seconds (\S+)$/m)[1]);
+  };
+
+  await fetch(`${base}/cleanest-city`);
+  assert.equal(await lastFailure(), 0);
+
+  const before = Date.now() / 1000;
+  await fetch(`${base}/cleanest-city?date-from=2026-10-01&date-to=2026-10-02`);
+  const timestamp = await lastFailure();
+
+  assert.ok(timestamp >= Math.floor(before) && timestamp <= Date.now() / 1000, String(timestamp));
+});

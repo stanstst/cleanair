@@ -1,5 +1,6 @@
 const path = require('node:path');
 const express = require('express');
+const { Registry, Histogram, Gauge } = require('prom-client');
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -11,10 +12,35 @@ function isIsoDate(value) {
 
 function createApp({ repository }) {
   const app = express();
+  const registry = new Registry();
+
+  const cleanestCityDuration = new Histogram({
+    name: 'cleanair_api_cleanest_city_request_duration_seconds',
+    help: 'Response time of GET /cleanest-city requests in seconds',
+    labelNames: ['status'],
+    buckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5],
+    registers: [registry],
+  });
+
+  const cleanestCityLastFailure = new Gauge({
+    name: 'cleanair_api_cleanest_city_last_failure_timestamp_seconds',
+    help: 'Unix timestamp of the last failed (5xx) GET /cleanest-city request',
+    registers: [registry],
+  });
 
   app.use(express.static(path.join(__dirname, '../public')));
 
+  app.get('/metrics', async (req, res) => {
+    res.set('Content-Type', registry.contentType);
+    res.send(await registry.metrics());
+  });
+
   app.get('/cleanest-city', async (req, res) => {
+    const stopTimer = cleanestCityDuration.startTimer();
+    res.on('finish', () => {
+      stopTimer({ status: res.statusCode });
+      if (res.statusCode >= 500) cleanestCityLastFailure.setToCurrentTime();
+    });
     res.set('Content-Type', 'application/json');
     const dateFrom = req.query['date-from'];
     const dateTo = req.query['date-to'];
