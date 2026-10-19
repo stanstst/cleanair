@@ -173,12 +173,15 @@ curl 'http://localhost:8080/cleanest-city?date-from=2025-10-06&date-to=2026-10-0
 * Fetcher last run
 * Fetcher Last status
 * Fetcher API calls (last run)
+* ![Screenshot From 2026-10-19 15-18-34.png](docs/screenshots/Screenshot%20From%202026-10-19%2015-18-34.png)
 
 * API Endpoint cleanest-city requests per minute
 * API Endpoint cleanest-city average response time
 * API Endpoint cleanest-city failed requests per hour
 * API Endpoint cleanest-city last failed request
+![Screenshot From 2026-10-19 15-22-46.png](docs/screenshots/Screenshot%20From%202026-10-19%2015-22-46.png)
 
 * Archiver last run
 * Archiver last status
+![Screenshot From 2026-10-19 15-19-36.png](docs/screenshots/Screenshot%20From%202026-10-19%2015-19-36.png)
 
