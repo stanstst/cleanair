@@ -151,6 +151,7 @@ docker compose exec dummy-dev-populator node src/job.js --date-from 01-10-2026
 ### API and UI
 
 The `api` service serves `GET /cleanest-city` and a web page with a date picker. For each city it averages the daily `max_ratio` and `mean_ratio` over the selected period (both dates inclusive, `YYYY-MM-DD`). It returns the city with the lowest average max, using the lower average mean to break a tie.
+UI URL localhost:8080
 
 ```bash
 

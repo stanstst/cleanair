@@ -2,6 +2,7 @@ const mysql = require('mysql2/promise');
 const { POLLUTANTS } = require('../openaq/config');
 
 const COLUMN_NAME = /^[a-z0-9_]+$/;
+const RECOMMENDATION_UNIT = 'µg/m³';
 
 function round(n, decimals) {
   const f = 10 ** decimals;
@@ -25,7 +26,11 @@ class OpenAQRepository {
   }
 
   rowFor(city, targetDate) {
-    const byPollutant = Object.fromEntries(city.pollutants.map((p) => [p.pollutant, p]));
+    // The recommended guidelines are in µg/m³, so a pollutant measured in any other unit can't be
+    // compared with them: store it as missing and leave it out of mean_ratio and max_ratio.
+    const byPollutant = Object.fromEntries(
+      city.pollutants.filter((p) => p.unit === RECOMMENDATION_UNIT).map((p) => [p.pollutant, p]),
+    );
     const values = this.pollutantKeys.flatMap((key) => {
       const p = byPollutant[key];
       return p ? [p.avg, p.unit, p.recommended_ratio] : [null, null, null];
