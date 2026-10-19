@@ -8,6 +8,7 @@
     "test:feature": "test/test-feature.sh"
   },
   "dependencies": {
-    "mysql2": "^3.11.0"
+    "mysql2": "^3.11.0",
+    "prom-client": "^15.1.3"
   }
 }

@@ -130,7 +130,7 @@ docker compose exec fetcher node src/job-backfill.js --start-date 11-10-2026 --e
 
 ### Archiving old records
 
-The `archiver` service moves `air_quality` rows whose `target_date` is older than `--months` (default 36) into CSV files and deletes them from the table. It writes one file per target date, `<target_date>-archive.csv`, and uploads it to the `fileserver` service ([dufs](https://github.com/sigoden/dufs)). It doesn't push metrics.
+The `archiver` service moves `air_quality` rows whose `target_date` is older than `--months` (default 36) into CSV files and deletes them from the table. It writes one file per target date, `<target_date>-archive.csv`, and uploads it to the `fileserver` service ([dufs](https://github.com/sigoden/dufs)).
 
 ```bash
 docker compose up -d --build fileserver archiver

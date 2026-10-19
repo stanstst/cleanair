@@ -1,7 +1,25 @@
 const { parseArgs } = require('node:util');
+const { Registry, Gauge, Pushgateway } = require('prom-client');
 const { AirQualityRepository } = require('./db/AirQualityRepository');
 const { ArchiveCreator } = require('./archive/ArchiveCreator');
 const { DufsFileUploader } = require('./archive/DufsFileUploader');
+
+const PUSHGATEWAY_URL = process.env.PUSHGATEWAY_URL || 'http://pushgateway:9091';
+const JOB_NAME = 'cleanair_archiver';
+
+const registry = new Registry();
+
+const lastRunGauge = new Gauge({
+  name: 'cleanair_archiver_last_run_timestamp_seconds',
+  help: 'Unix timestamp of the last archiver run completion',
+  registers: [registry],
+});
+
+const lastSuccessGauge = new Gauge({
+  name: 'cleanair_archiver_last_success',
+  help: 'Whether the last archiver run succeeded (1) or failed (0)',
+  registers: [registry],
+});
 
 class UsageError extends Error {
   constructor(message) {
@@ -53,6 +71,7 @@ async function main({
     if (!env.ARCHIVE_URL) throw new Error('ARCHIVE_URL is not set');
     return new DufsFileUploader({ baseUrl: env.ARCHIVE_URL, user: env.ARCHIVE_USER, password: env.ARCHIVE_PASSWORD });
   },
+  pushgateway = new Pushgateway(PUSHGATEWAY_URL, {}, registry),
 } = {}) {
   const start = process.hrtime.bigint();
   let success = true;
@@ -92,9 +111,14 @@ async function main({
   await repository?.close().catch(() => {});
 
   const durationSeconds = Number(process.hrtime.bigint() - start) / 1e9;
+  lastRunGauge.set(Date.now() / 1000);
+  lastSuccessGauge.set(success ? 1 : 0);
+
   console.info(
     `Archive finished in ${durationSeconds.toFixed(3)}s (cutoff=${cutoff ?? '-'}, files=${files}, records=${records}, success=${success})`,
   );
+
+  await pushgateway.pushAdd({ jobName: JOB_NAME });
 
   return exitCode;
 }
@@ -110,4 +134,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { main };
+module.exports = { main, registry };

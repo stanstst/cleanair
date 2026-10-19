@@ -28,6 +28,7 @@ services:
     #   docker compose exec archiver node src/job.js
     command: ["sleep", "infinity"]
     environment:
+      PUSHGATEWAY_URL: http://pushgateway:9091
       DB_HOST: mysql
       DB_PORT: 3306
       DB_NAME: ${MYSQL_DATABASE}
@@ -39,6 +40,8 @@ services:
     volumes:
       - ./archiver/src:/archiver/src:ro
     depends_on:
+      pushgateway:
+        condition: service_started
       migrate:
         condition: service_completed_successfully
       fileserver:

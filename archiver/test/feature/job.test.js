@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { main } = require('../../src/job');
+const { main, registry } = require('../../src/job');
 const { AirQualityRepository } = require('../../src/db/AirQualityRepository');
 const { FileUploader } = require('../../src/archive/FileUploader');
 const { SqliteConnection } = require('../SqliteConnection');
@@ -38,6 +38,7 @@ async function runArchive(t, args, { records = [], now = '2026-10-17T08:00:00Z',
 
   const info = t.mock.method(console, 'info', () => {});
   const error = t.mock.method(console, 'error', () => {});
+  const pushes = [];
 
   const exitCode = await main({
     args,
@@ -45,6 +46,12 @@ async function runArchive(t, args, { records = [], now = '2026-10-17T08:00:00Z',
     now: () => new Date(now),
     connectRepository: async () => new AirQualityRepository(connection),
     createUploader: () => uploader ?? new FileUploader({ dir }),
+    pushgateway: {
+      pushAdd: async (params) => {
+        const metrics = await registry.getMetricsAsJSON();
+        pushes.push({ ...params, metrics: Object.fromEntries(metrics.map((m) => [m.name, m.values[0].value])) });
+      },
+    },
   });
 
   const rows = connection.all('SELECT city, target_date FROM air_quality ORDER BY id');
@@ -55,7 +62,7 @@ async function runArchive(t, args, { records = [], now = '2026-10-17T08:00:00Z',
 
   const stdout = info.mock.calls.map((c) => c.arguments.join(' '));
   const stderr = error.mock.calls.map((c) => c.arguments.join(' '));
-  return { exitCode, rows, files, dir, stdout, stderr, connection };
+  return { exitCode, rows, files, dir, stdout, stderr, connection, pushes };
 }
 
 const sampleRecords = [
@@ -141,4 +148,27 @@ test('upload failure exits 1 and keeps the records of that day', async (t) => {
   assert.equal(rows.length, sampleRecords.length);
   assert.deepEqual(stderr, ['disk full']);
   assert.match(stdout.at(-1), /files=0, records=0, success=false/);
+});
+
+test('pushes the last run timestamp and success to Pushgateway', async (t) => {
+  const before = Date.now() / 1000;
+  const { pushes } = await runArchive(t, [], { records: sampleRecords });
+
+  assert.equal(pushes.length, 1);
+  assert.equal(pushes[0].jobName, 'cleanair_archiver');
+  assert.equal(pushes[0].metrics.cleanair_archiver_last_success, 1);
+  const lastRun = pushes[0].metrics.cleanair_archiver_last_run_timestamp_seconds;
+  assert.ok(lastRun >= before && lastRun <= Date.now() / 1000, String(lastRun));
+});
+
+test('pushes a failed status when the run fails', async (t) => {
+  const uploader = {
+    upload: async () => {
+      throw new Error('disk full');
+    },
+  };
+  const { pushes } = await runArchive(t, [], { records: sampleRecords, uploader });
+
+  assert.equal(pushes.length, 1);
+  assert.equal(pushes[0].metrics.cleanair_archiver_last_success, 0);
 });
