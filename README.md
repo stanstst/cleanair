@@ -193,3 +193,70 @@ curl 'http://localhost:8080/cleanest-city?date-from=2025-10-06&date-to=2026-10-0
 | `pushgateway`       | Deployment (1 replica) + Service                                                                |
 | `prometheus`        | StatefulSet + PVC                                                                               |
 | `grafana`           | Deployment (1 replica)                                                                          |
+
+## Processes Diagram
+
+```
+                        ┌──────────────────┐
+                        │   OpenAQ API     │  (external)
+                        └────────▲─────────┘
+                                 │ GET /locations, /sensors/{id}/hours
+                                 │ (X-API-Key)
+┌─────────────┐         ┌────────┴─────────┐
+│   Browser   │         │     FETCHER      │  src/job.js  (CronJob)
+│   (UI)      │         │  fetch last 24h, │  src/job-backfill.js (Job)
+└──────┬──────┘         │  compute ratios  │
+       │                └───┬──────────┬───┘
+       │ GET /                 │ INSERT   │ push: duration, last run,
+       │ GET /cleanest-city    │          │       status, API calls
+       ▼  ?date-from&date-to   ▼          │
+┌─────────────┐        ┌─────────────┐    │
+│     API     │ SELECT │    MySQL    │    │
+│  Express    ├───────►│ air_quality │    │
+│  :8080      │        └──────▲──────┘    │
+│  /metrics   │               │ SELECT    │
+└──────▲──────┘               │ older than│
+       │                      │ --months, │
+       │               ┌──────┴──────┐ DELETE
+       │               │  ARCHIVER   │    │
+       │               │ src/job.js  │    │   (CronJob)
+       │               │ 1 CSV per   │    │
+       │               │ target_date │    │
+       │               └──┬───────┬──┘    │
+       │   PUT CSV (auth) │       │ push: │
+       │                  ▼       │ last run, status
+       │         ┌──────────────┐ │       │
+       │         │  fileserver  │ │       │
+       │         │  (dufs)      │ │       │
+       │         │  :5000       │ │       │
+       │         └──────────────┘ ▼       ▼
+       │                     ┌───────────────┐
+       │ scrape /metrics     │  Pushgateway  │
+       │ every 5s            │    :9091      │
+       │                     └───────▲───────┘
+       │                             │ scrape every 5s
+       │      ┌──────────────────────┴┐
+       └──────┤      Prometheus       │
+              │        :9090          │
+              └───────────▲───────────┘
+                          │ PromQL
+              ┌───────────┴───────────┐
+              │        Grafana        │  "CleanAir Job" dashboard
+              │        :3000          │
+              └───────────────────────┘
+```
+
+### How it flows
+
+- **Fetcher**:
+  - Pulls hourly sensor data for each city from OpenAQ.
+  - Saves one `air_quality` row per city per day in MySQL.
+  - Pushes run metrics to the Pushgateway, because it's a short job that exits before Prometheus could collect from it directly.
+- **API**:
+  - Serves the UI and `GET /cleanest-city`, which reads `air_quality` to find the city with the lowest pollution for the date range.
+  - Exposes its own `/metrics`: request count, response time and last failure. Prometheus pulls these directly because the API is always running.
+- **Archiver**:
+  - Selects rows older than `--months` (default 36).
+  - Uploads one CSV per `target_date` to the dufs fileserver, then deletes those rows from MySQL.
+  - Pushes its last run time and status to the Pushgateway.
+- **Monitoring**: Prometheus collects from the Pushgateway and the API every 5s, and Grafana charts it all on the CleanAir Job dashboard.
