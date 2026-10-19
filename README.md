@@ -261,3 +261,30 @@ curl 'http://localhost:8080/cleanest-city?date-from=2025-10-06&date-to=2026-10-0
   - Uploads one CSV per `target_date` to the dufs fileserver, then deletes those rows from MySQL.
   - Pushes its last run time and status to the Pushgateway.
 - **Monitoring**: Prometheus collects from the Pushgateway and the API every 5s, and Grafana charts it all on the CleanAir Job dashboard.
+
+
+## Running tests
+
+The tests run inside the service images, with no network access, against an in-memory SQLite database and the captured OpenAQ responses in `fetcher/test/fixtures`. Build the images first, and rebuild them after changing a `package.json`:
+
+```bash
+docker compose build fetcher archiver api
+```
+
+### Feature tests
+
+```bash
+fetcher/test/test-feature.sh
+archiver/test/test-feature.sh
+api/test/test-feature.sh
+```
+
+### Fetcher unit tests
+
+```bash
+docker run --rm --network none \
+  -v "$PWD/fetcher/package.json:/fetcher/package.json:ro" \
+  -v "$PWD/fetcher/src:/fetcher/src:ro" \
+  -v "$PWD/fetcher/test:/fetcher/test:ro" \
+  cleanair-fetcher node --test 'test/unit/**/*.test.js'
+```
