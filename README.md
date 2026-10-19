@@ -117,6 +117,7 @@ docker compose up -d
 
 ### Run the `fetcher` process:
 Fetches the last 24h, or the day ending at `--date-to`
+on PROD Must be scheduled at the very end of the day after 23 o'clock
 
 ```bash
 docker compose exec fetcher node src/job.js
@@ -180,15 +181,15 @@ curl 'http://localhost:8080/cleanest-city?date-from=2025-10-06&date-to=2026-10-0
 
 ## Production Deployment Guidelines
 
-| Service             | Kubernetes workload                                      |
-|---------------------|----------------------------------------------------------|
-| `api`               | Deployment + Service                                     |
-| `fetcher`           | CronJob (`job.js` as entry point)                        |
-| `fetcher-backfill`  | Job                                                      |
-| `archiver`          | CronJob                                                  |
-| `migrate` (flyway)  | Job (Helm pre-install/pre-upgrade hook or initContainer) |
-| `mysql`             | StatefulSet + PVC + headless Service                     |
-| `fileserver` (dufs) | StatefulSet (1 replica) + PVC                            |
-| `pushgateway`       | Deployment (1 replica) + Service                         |
-| `prometheus`        | StatefulSet + PVC                                        |
-| `grafana`           | Deployment (1 replica)                                   |
+| Service             | Kubernetes workload                                                                             |
+|---------------------|-------------------------------------------------------------------------------------------------|
+| `api`               | Deployment + Service                                                                            |
+| `fetcher`           | CronJob (`job.js` as entry point) Must be scheduled at the very end of the day after 23 o'clock |
+| `fetcher-backfill`  | Job                                                                                             |
+| `archiver`          | CronJob                                                                                         |
+| `migrate` (flyway)  | Job (Helm pre-install/pre-upgrade hook or initContainer)                                        |
+| `mysql`             | StatefulSet + PVC + headless Service                                                            |
+| `fileserver` (dufs) | StatefulSet (1 replica) + PVC                                                                   |
+| `pushgateway`       | Deployment (1 replica) + Service                                                                |
+| `prometheus`        | StatefulSet + PVC                                                                               |
+| `grafana`           | Deployment (1 replica)                                                                          |
