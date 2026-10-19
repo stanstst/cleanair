@@ -107,11 +107,6 @@ The reference limits are set in `fetcher/src/openaq/config.js`, in `recommendedG
  ```
 ---
 
-## Known limitations
-
-- **Station placement affects results.** A city with a single traffic-side station will look worse than one with a single park-side station.
-- **Short periods are noisy.** A ranking over one or two days can be dominated by a single weather event.
-
 ---
 
 ## Running the jobs
@@ -172,6 +167,9 @@ curl 'http://localhost:8080/cleanest-city?date-from=2025-10-06&date-to=2026-10-0
 { "city": "ruse", "period_max_polution": 2.219375, "period_mean_polution": 1.492708 }
 ```
 
-Invalid or missing dates return `400`, and a period with no data returns `404`. The UI is at http://localhost:8080.
+## Grafana URL http://localhost:3000/d/cleanair-job
 
-Feature tests (no network): `api/test/test-feature.sh`
+* Last duration
+* Last run
+* Last status
+* API calls (last run)
