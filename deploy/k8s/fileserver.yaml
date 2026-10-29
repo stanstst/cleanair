@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: fileserver
+  namespace: cleanair
+spec:
+  selector:
+    app: fileserver
+  ports:
+    - name: http
+      port: 5000
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: fileserver
+  namespace: cleanair
+spec:
+  serviceName: fileserver
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fileserver
+  template:
+    metadata:
+      labels:
+        app: fileserver
+    spec:
+      containers:
+        - name: dufs
+          image: sigoden/dufs:v0.47.0
+          args:
+            - /data
+            - --allow-upload
+            - --allow-delete
+            - -a
+            - $(ARCHIVE_USER):$(ARCHIVE_PASSWORD)@/:rw
+            - -a
+            - "@/"
+          env:
+            - name: ARCHIVE_USER
+              valueFrom:
+                configMapKeyRef: {name: cleanair-db, key: ARCHIVE_USER}
+            - name: ARCHIVE_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: cleanair-secrets, key: ARCHIVE_PASSWORD}
+          ports:
+            - containerPort: 5000
+          resources:
+            requests: {cpu: 20m, memory: 32Mi}
+            limits: {memory: 128Mi}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi

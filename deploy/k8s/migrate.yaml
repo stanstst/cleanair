@@ -1,0 +1,38 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migrate
+  namespace: cleanair
+spec:
+  backoffLimit: 5
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: flyway
+          image: flyway/flyway:11.10.0
+          args: ["migrate"]
+          env:
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef: {name: cleanair-db, key: DB_NAME}
+            - name: FLYWAY_URL
+              value: jdbc:mysql://mysql:3306/$(DB_NAME)?allowPublicKeyRetrieval=true&useSSL=false
+            - name: FLYWAY_USER
+              valueFrom:
+                configMapKeyRef: {name: cleanair-db, key: DB_USER}
+            - name: FLYWAY_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: cleanair-secrets, key: MYSQL_PASSWORD}
+            - name: FLYWAY_CONNECT_RETRIES
+              value: "30"
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+          volumeMounts:
+            - name: migrations
+              mountPath: /flyway/sql
+              readOnly: true
+      volumes:
+        - name: migrations
+          configMap:
+            name: mysql-migrations

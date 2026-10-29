@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cleanair-config
+  namespace: cleanair
+data:
+  DB_HOST: mysql
+  DB_PORT: "3306"
+  PUSHGATEWAY_URL: http://pushgateway:9091
+  ARCHIVE_URL: http://fileserver:5000
+  PORT: "8080"

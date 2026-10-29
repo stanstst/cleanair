@@ -1,0 +1,39 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: archiver
+  namespace: cleanair
+spec:
+  schedule: "0 23 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        spec:
+          restartPolicy: Never
+          serviceAccountName: wait-for-migrate
+          initContainers:
+            - name: wait-for-migrate
+              image: registry.k8s.io/kubectl:v1.35.1
+              args: ["wait", "--for=condition=complete", "job/migrate", "--timeout=600s"]
+          containers:
+            - name: archiver
+              image: cleanair-archiver:local
+              imagePullPolicy: IfNotPresent
+              command: ["node", "src/job.js"]
+              envFrom:
+                - configMapRef: {name: cleanair-config}
+                - configMapRef: {name: cleanair-db}
+              env:
+                - name: DB_PASSWORD
+                  valueFrom:
+                    secretKeyRef: {name: cleanair-secrets, key: MYSQL_PASSWORD}
+                - name: ARCHIVE_PASSWORD
+                  valueFrom:
+                    secretKeyRef: {name: cleanair-secrets, key: ARCHIVE_PASSWORD}
+              resources:
+                requests: {cpu: 50m, memory: 64Mi}
+                limits: {memory: 256Mi}

@@ -195,6 +195,42 @@ curl 'http://localhost:8080/cleanest-city?date-from=2025-10-06&date-to=2026-10-0
 | `prometheus`        | StatefulSet + PVC                                                                               |
 | `grafana`           | Deployment (1 replica)                                                                          |
 
+## Deployment to local minikube
+
+Plain Kubernetes manifests in `deploy/k8s/`, applied with `kubectl` (no Helm), in the namespace `cleanair`.
+Needs minikube (docker driver) and `.env` in the project root. Without a `kubectl` binary the scripts use `minikube kubectl --`.
+
+### Deploy or update
+Builds the `api`, `fetcher` and `archiver` images, loads them into minikube, creates the secrets and config from `.env`, `mysql/migrations`, `prometheus/` and `grafana/provisioning`, and applies the manifests.
+```bash
+./deploy/local-deploy.sh
+kubectl get pods -n cleanair
+```
+
+### Open the services
+```bash
+kubectl port-forward -n cleanair svc/api 8080:8080         # UI and API http://localhost:8080
+kubectl port-forward -n cleanair svc/grafana 3000:3000     # http://localhost:3000/d/cleanair-job
+kubectl port-forward -n cleanair svc/prometheus 9090:9090
+kubectl port-forward -n cleanair svc/fileserver 5000:5000  # archived CSV files
+kubectl port-forward -n cleanair pod/mysql-0 3307:3306     # MySQL on 127.0.0.1:3307, credentials from .env
+```
+
+### Run the jobs on demand
+`fetcher` and `archiver` are CronJobs that run every day at 23:00 (UTC).
+```bash
+kubectl create job -n cleanair --from=cronjob/fetcher fetcher-manual
+kubectl create job -n cleanair --from=cronjob/archiver archiver-manual
+./deploy/run-backfill.sh 26-10-2026 28-10-2026   # start and end date, DD-MM-YYYY
+kubectl logs -n cleanair job/fetcher-manual
+```
+
+### Delete
+Deletes the namespace with all data.
+```bash
+kubectl delete -f deploy/k8s/
+```
+
 ## Processes Diagram
 
 ```
