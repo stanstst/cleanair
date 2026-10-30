@@ -1,0 +1,15 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: cleanair
+spec:
+  template:
+    spec:
+      containers:
+        - name: grafana
+          env:
+            - name: GF_AUTH_ANONYMOUS_ENABLED
+              value: "false"
+            - name: GF_USERS_ALLOW_SIGN_UP
+              value: "false"

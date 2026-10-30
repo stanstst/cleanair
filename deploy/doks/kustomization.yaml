@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../k8s
+images:
+  - name: cleanair-api
+    newName: registry.digitalocean.com/cleanair/cleanair
+    newTag: api-TAG
+  - name: cleanair-fetcher
+    newName: registry.digitalocean.com/cleanair/cleanair
+    newTag: fetcher-TAG
+  - name: cleanair-archiver
+    newName: registry.digitalocean.com/cleanair/cleanair
+    newTag: archiver-TAG
+patches:
+  - path: serviceaccount-pull-secret.yaml
+  - path: services-nodeport.yaml
+  - path: grafana-no-anonymous.yaml
+  - path: mysql-requests.yaml
+  - path: fileserver-no-anonymous.yaml
+    target:
+      kind: StatefulSet
+      name: fileserver

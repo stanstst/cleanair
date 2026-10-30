@@ -4,7 +4,7 @@ metadata:
   name: archiver
   namespace: cleanair
 spec:
-  schedule: "0 23 * * *"
+  schedule: "0 22 * * *"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3

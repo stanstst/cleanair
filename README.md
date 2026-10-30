@@ -197,7 +197,7 @@ curl 'http://localhost:8080/cleanest-city?date-from=2025-10-06&date-to=2026-10-0
 
 ## Deployment to local minikube
 
-Plain Kubernetes manifests in `deploy/k8s/`, applied with `kubectl` (no Helm), in the namespace `cleanair`.
+Plain Kubernetes manifests in `deploy/k8s/` (a kustomize base), applied with `kubectl apply -k` (no Helm), in the namespace `cleanair`.
 Needs minikube (docker driver) and `.env` in the project root. Without a `kubectl` binary the scripts use `minikube kubectl --`.
 
 ### Deploy or update
@@ -217,18 +217,64 @@ kubectl port-forward -n cleanair pod/mysql-0 3307:3306     # MySQL on 127.0.0.1:
 ```
 
 ### Run the jobs on demand
-`fetcher` and `archiver` are CronJobs that run every day at 23:00 (UTC).
+`fetcher` is a CronJob that runs every day at 23:00 (UTC), `archiver` a CronJob that runs every day at 22:00 (UTC), so they do not overlap.
 ```bash
 kubectl create job -n cleanair --from=cronjob/fetcher fetcher-manual
 kubectl create job -n cleanair --from=cronjob/archiver archiver-manual
-./deploy/run-backfill.sh 26-10-2026 28-10-2026   # start and end date, DD-MM-YYYY
+./deploy/run-backfill.sh 26-10-2026 28-10-2026   # start and end date, DD-MM-YYYY, optional 3rd argument: kubectl context
 kubectl logs -n cleanair job/fetcher-manual
 ```
 
 ### Delete
 Deletes the namespace with all data.
 ```bash
-kubectl delete -f deploy/k8s/
+kubectl delete -k deploy/k8s
+```
+
+## Deployment to DigitalOcean (DOKS)
+
+Cluster `k8s-1-37-0-do-2-fra1-1793344160927` in `fra1`, 1 node `s-1vcpu-2gb`, kubectl context `do-fra1-k8s-1-37-0-do-2-fra1-1793344160927`.
+Uses the same manifests through the kustomize overlay `deploy/doks`: images from the registry `registry.digitalocean.com/cleanair` (free Starter plan, 1 repository `cleanair` with tags `api-<sha>`, `fetcher-<sha>`, `archiver-<sha>`), NodePort Services for the public services, no load balancer.
+Needs `doctl` (logged in with `doctl auth init`), `jq`, and in `.env`: `MYSQL_ROOT_PASSWORD`, `GRAFANA_ADMIN_PASSWORD` (not `admin`) and `ARCHIVE_PASSWORD` (not `archiver`).
+
+### Deploy or update
+Builds and pushes the 3 images tagged with the git short sha, creates the secrets, config and registry pull secret, applies the overlay, opens the 3 NodePorts in the cloud firewall `cleanair-nodeports`, keeps the 2 newest image tags per app and starts the registry garbage collection.
+```bash
+./deploy/doks-deploy.sh            # prints the 3 public URLs
+kubectl --context do-fra1-k8s-1-37-0-do-2-fra1-1793344160927 get pods -n cleanair
+```
+
+### Open the services
+Public on the node IP (`kubectl get nodes -o wide`, EXTERNAL-IP), plain http, no TLS:
+* UI and API `http://<node ip>:30080/`
+* Grafana `http://<node ip>:30300/`, login `admin` / `GRAFANA_ADMIN_PASSWORD`
+* Fileserver `http://<node ip>:30500/`, login `ARCHIVE_USER` / `ARCHIVE_PASSWORD`
+
+Not public, through port-forward:
+```bash
+kubectl --context do-fra1-k8s-1-37-0-do-2-fra1-1793344160927 port-forward -n cleanair svc/prometheus 9090:9090
+kubectl --context do-fra1-k8s-1-37-0-do-2-fra1-1793344160927 port-forward -n cleanair pod/mysql-0 3307:3306
+```
+
+### Run the jobs on demand
+```bash
+kubectl --context do-fra1-k8s-1-37-0-do-2-fra1-1793344160927 create job -n cleanair --from=cronjob/fetcher fetcher-manual
+kubectl --context do-fra1-k8s-1-37-0-do-2-fra1-1793344160927 create job -n cleanair --from=cronjob/archiver archiver-manual
+./deploy/run-backfill.sh 26-10-2026 28-10-2026 do-fra1-k8s-1-37-0-do-2-fra1-1793344160927
+```
+
+### Delete
+Deletes the namespace with all data and the 3 volumes.
+```bash
+kubectl --context do-fra1-k8s-1-37-0-do-2-fra1-1793344160927 delete -k deploy/doks
+```
+
+### Change the node size
+Pods move to the new node by themselves, no redeploy. The node IP changes, the firewall follows the cluster tag.
+```bash
+doctl kubernetes cluster node-pool create 145fd87c-f614-4046-86fd-ccc223d11558 --name pool-2vcpu --size s-2vcpu-4gb --count 1
+kubectl get nodes      # wait until the new node is Ready
+doctl kubernetes cluster node-pool delete 145fd87c-f614-4046-86fd-ccc223d11558 pool-yjo6nqeqv
 ```
 
 ## Processes Diagram
