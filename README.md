@@ -262,6 +262,10 @@ kubectl --context do-fra1-k8s-1-37-0-do-2-fra1-1793344160927 create job -n clean
 kubectl --context do-fra1-k8s-1-37-0-do-2-fra1-1793344160927 create job -n cleanair --from=cronjob/archiver archiver-manual
 ./deploy/run-backfill.sh 26-10-2026 28-10-2026 do-fra1-k8s-1-37-0-do-2-fra1-1793344160927
 ```
+The backfill does not push metrics to Grafana and logs only when it is finished. Follow its progress with the rows per date in MySQL:
+```bash
+kubectl --context do-fra1-k8s-1-37-0-do-2-fra1-1793344160927 -n cleanair exec mysql-0 -- sh -c 'mysql -N -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" -e "select target_date, count(*) from air_quality group by target_date"'
+```
 
 ### Delete
 Deletes the namespace with all data and the 3 volumes.
